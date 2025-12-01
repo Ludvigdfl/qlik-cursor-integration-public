@@ -4,7 +4,7 @@ import time
 from qlik_script import QlikScript, _App_id
 
 
-def get_script(App_Name:str):
+def get(App_Name:str):
     """Get script from Qlik app, parse tabs, and save to files."""
     print(f"Running get_script({App_Name})")
     Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"), _App_id()[App_Name])
@@ -19,9 +19,9 @@ def get_script(App_Name:str):
     Qlik.save_tabs_to_files(app_script_parsed)
 
 
-def set_script(App_Name:str):
+def publish(App_Name:str):
     """Set script in Qlik app with validation."""
-    print(f"Running set_script({App_Name})")
+    print(f"Running publish({App_Name})")
     Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
     script_tabbed = Qlik.get_app_script_tabbed()
 
@@ -33,16 +33,16 @@ def set_script(App_Name:str):
     Qlik.set_app_script(script_tabbed, "test")
 
 
-def empty_script(App_Name:str):
+def remove(App_Name:str):
     """Empty the script directory."""
-    print(f"Running empty_script({App_Name})")
+    print(f"Running remove({App_Name})")
     Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
     Qlik.empty_script_directory()
 
 
-def load_script(App_Name:str):
+def load(App_Name:str):
     """Reload app and stream reload logs."""
-    print(f"Running load_script({App_Name})")
+    print(f"Running load({App_Name})")
     Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
     
     reload_id = Qlik.reload_app()
@@ -83,14 +83,12 @@ def load_script(App_Name:str):
         print("You can check the status later using: Qlik.get_reload_log(reload_id)")
 
 
-# if __name__ == "__main__":
-    
-    # Map command names to functions
+
 commands = {
-    "get_script": get_script,
-    "set_script": set_script,
-    "empty_script": empty_script,
-    "load_script": load_script
+    "get": get,
+    "publish": publish,
+    "remove": remove,
+    "load": load
 }
 
 try:
@@ -106,11 +104,11 @@ except ValueError as e:
     print(e)
     sys.exit(1)
 
-if tool_to_run == "get_script":
-    get_script(sys.argv[2]) 
-elif tool_to_run == "set_script":
-    set_script(sys.argv[2])
-elif tool_to_run == "empty_script":
-    empty_script(sys.argv[2])
-elif tool_to_run == "load_script":
-    load_script(sys.argv[2])
+if tool_to_run == "get":
+    get(sys.argv[2]) 
+elif tool_to_run == "publish":
+    publish(sys.argv[2])
+elif tool_to_run == "remove":
+    remove(sys.argv[2])
+elif tool_to_run == "load":
+    load(sys.argv[2])
