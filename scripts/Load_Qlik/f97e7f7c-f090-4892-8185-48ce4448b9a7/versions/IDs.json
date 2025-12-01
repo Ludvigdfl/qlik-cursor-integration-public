@@ -1,0 +1,19 @@
+{
+  "scripts": [
+    {
+      "scriptId": "bcdb94c4-5be1-422a-ac15-c3be5c5174a7",
+      "size": 2388,
+      "modifiedTime": "2025-11-26T13:28:47.746Z",
+      "modifierId": "qXT2QwfDfAzDzTBkQEZHhG2Rc0cNzyeF",
+      "versionMessage": ""
+    }
+  ],
+  "links": {
+    "prev": null,
+    "next": null
+  },
+  "privileges": [
+    "read",
+    "update"
+  ]
+}
