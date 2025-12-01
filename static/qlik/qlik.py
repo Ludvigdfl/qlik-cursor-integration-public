@@ -14,9 +14,9 @@ def get(App_Name:str):
     Qlik.get_app_script_by_id()
 
     app_script = Qlik.get_app_script_by_id() 
-    app_script_parsed = Qlik.parse_script_tabs(app_script)
+    app_script_tabbed = Qlik.parse_script_tabs(app_script)
 
-    Qlik.save_tabs_to_files(app_script_parsed)
+    Qlik.save_tabs_as_qvs_files(app_script_tabbed)
 
 
 def publish(App_Name:str):

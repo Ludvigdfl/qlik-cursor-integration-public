@@ -131,6 +131,7 @@ class QlikScript:
         # Extract each tab
         for i, match in enumerate(matches):
             tab_name = match.group(1)
+            tab_name = f"{i}___{tab_name}"  # Name with i.__ to keep order of tabs
             start_pos = match.end()
             
             # Find the end position (start of next tab or end of script)
@@ -146,7 +147,7 @@ class QlikScript:
         return tabs
 
 
-    def save_tabs_to_files(self, tabs: Dict[str, str]) -> List[str]:
+    def save_tabs_as_qvs_files(self, tabs: Dict[str, str]) -> List[str]:
         """
         Save each tab to a separate .qvs file.
         
@@ -216,8 +217,8 @@ class QlikScript:
                 if f not in ordered_files:
                     ordered_files.append(f)
         else:
-            # Sort alphabetically, but put "Main" first if it exists
-            ordered_files = sorted(qvs_files, key=lambda x: (x.stem != "Main", x.stem))
+            # Sort descending based on first 3 characters of filename
+            ordered_files = sorted(qvs_files, key=lambda x: x.stem[:3] if len(x.stem) >= 3 else x.stem, reverse=True)
         
         combined_script = []
         
@@ -263,7 +264,7 @@ class QlikScript:
         if not qvs_files:
             raise ValueError(f"No .qvs files found in {script_dir}")
         
-        ordered_files = sorted(qvs_files, key=lambda x: (x.stem != "Main", x.stem))
+        ordered_files = sorted(qvs_files, key=lambda x: x.stem[:3] if len(x.stem) >= 3 else x.stem, reverse=False)
         
         combined_parts = []
         for qvs_file in ordered_files:
@@ -279,9 +280,8 @@ class QlikScript:
                 continue
             
             content = content.replace('\r\n', '\r').replace('\n', '\r')
-            # print(f"TAB: {tab_name} ({len(content)} chars)")
-            # print(f"CONTENT: {content}...")
-            combined_parts.append(f"///$tab {tab_name}\r{content}")
+         
+            combined_parts.append(f"///$tab {tab_name.split('___')[1]}\r{content}")
         
         combined_script = "\r\r".join(combined_parts)
         return combined_script
