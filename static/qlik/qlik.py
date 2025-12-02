@@ -93,8 +93,9 @@ def help():
     print("🟢 get - Get script from Qlik app: qlik get <app_name>")
     print("🟢 set - Set script in Qlik app with validation: qlik set <app_name>")
     print("🟢 load - Reload Qlik app in Shared Space: qlik load <app_name>")
-    print("🟢 rem - Empty the local script directory for app: qlik rem <app_name>")
     print("🟢 pub - Publish Qlik app in Shared Space to Managed Space: qlik pub <app_name>")
+    print("🟢 rem - Empty the local script directory for app: qlik rem <app_name>")
+
 
 commands = {
     "get": get,
