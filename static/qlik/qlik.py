@@ -120,15 +120,35 @@ except ValueError as e:
     sys.exit(1)
 
 if tool_to_run == "get":
-    get(sys.argv[2]) 
+    try:
+        get(sys.argv[2]) 
+    except Exception as e:
+        print(f"❌ 'qlik get' takes 1 argument: qlik get <app_name>")
+        sys.exit(1)
 elif tool_to_run == "set":
-    set(sys.argv[2])
+    try:
+        set(sys.argv[2])
+    except Exception as e:
+        print(f"❌ 'qlik set' takes 1 argument: qlik set <app_name>")
+        sys.exit(1)
 elif tool_to_run == "load":
-    load(sys.argv[2])
+    try:
+        load(sys.argv[2])
+    except Exception as e:
+        print(f"❌ 'qlik load' takes 1 argument: qlik load <app_name>")
+        sys.exit(1)
 elif tool_to_run == "pub":
-    pub(sys.argv[2])
+    try:
+        pub(sys.argv[2])
+    except Exception as e:
+        print(f"❌ 'qlik pub' takes 1 argument: qlik pub <app_name>")
+        sys.exit(1)
 elif tool_to_run == "rem":
-    rem(sys.argv[2])
+    try:
+        rem(sys.argv[2])
+    except Exception as e:
+        print(f"❌ 'qlik rem' takes 1 argument: qlik rem <app_name>")
+        sys.exit(1)
 elif tool_to_run == "help":
     help()
 
