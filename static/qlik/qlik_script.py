@@ -64,29 +64,13 @@ class QlikScript:
         response.raise_for_status()
         return response.json()
     
-    def get_app_script(self) -> Dict:
+
+    def get_script(self) -> Dict:
         self.empty_script_directory()
         url = f"{self.base_url}/apps/{self.app_id}/scripts"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         data = response.json()
-        
-        project_root = self._get_project_root()
-        versions_dir = project_root / "scripts" / self.app_name / self.app_id / "versions"
-        versions_dir.mkdir(parents=True, exist_ok=True)
-        
-        script_file = versions_dir / "IDs.json"
-        with open(script_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        
-        return data
-    
-
-    def get_app_script_by_id(self) -> str:
-        project_root = self._get_project_root()
-        script_file = project_root / "scripts" / self.app_name / self.app_id / "versions" / "IDs.json"
-        with open(script_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
         
         scripts_list = data.get("scripts", [])
         if not scripts_list:
@@ -100,17 +84,19 @@ class QlikScript:
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json()["script"]
+         
+  
     
 
     def parse_script_tabs(self, script: str) -> Dict[str, str]:
         """
-        Parse a Qlik script and split it by tab markers (///$tab _NAMEOFTAB_).
+        Parse a Qlik script and split it by tab markers (///$tab _TAB_).
         
         Args:
             script: The full Qlik script string
             
         Returns:
-            Dictionary mapping tab names to their script content
+            Dictionary mapping i___tab_name to their script content
         """
         # Pattern to match tab markers: ///$tab TABNAME (captures everything until newline)
         tab_pattern = r'///\$tab\s+([^\r\n]+)'
