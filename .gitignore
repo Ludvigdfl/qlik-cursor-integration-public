@@ -1,6 +1,6 @@
 /scripts
 /venv
-__pycache__/
+static/qlik/__pycache__/
 *.pyc
 *.pyo
 *.pyd
