@@ -7,7 +7,7 @@ from qlik_script import QlikScript, _App_id
 def get(App_Name:str):
     """Get script from Qlik app, parse tabs, and save to files."""
     print(f"Running get_script({App_Name})")
-    Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"), _App_id()[App_Name])
+    Qlik = QlikScript(_App_id()[App_Name])
 
     Qlik.empty_script_directory()
 
@@ -20,7 +20,7 @@ def get(App_Name:str):
 def set(App_Name:str):
     """Set script in Qlik app with validation."""
     print(f"Running publish({App_Name})")
-    Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
+    Qlik = QlikScript(_App_id()[App_Name])
     script_tabbed = Qlik.get_app_script_tabbed()
 
     print("____________")
@@ -34,14 +34,14 @@ def set(App_Name:str):
 def rem(App_Name:str = None):
     """Empty the script directory."""
     print(f"Running rem({App_Name})")
-    Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
+    Qlik = QlikScript(_App_id()[App_Name])
     Qlik.empty_script_directory()
 
 
 def load(App_Name:str):
     """Reload app and stream reload logs."""
     print(f"Running load({App_Name})")
-    Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
+    Qlik = QlikScript(_App_id()[App_Name])
     
     reload_id = Qlik.reload_app()
     
@@ -83,7 +83,7 @@ def load(App_Name:str):
 def pub(App_Name:str = None):
     """Publish app in Shared Space to Managed Space."""
     print(f"Running Publish({App_Name})")
-    Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
+    Qlik = QlikScript(_App_id()[App_Name])
     Qlik.republish_app()
 
 

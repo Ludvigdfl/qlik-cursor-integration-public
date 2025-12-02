@@ -23,7 +23,7 @@ The qlik.cmd then handles the rest executing scripts in
 
 1. Generate an API key from your Qlik Cloud tenant
 2. Set it as an environment variable:
-   - Variable name: `Qlik_Climber_API_For_Cursor`
+   - Variable name: `_QLIK_API_KEY_`
    - Variable value: Your API key
 
 ### 4. Get Started

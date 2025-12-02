@@ -25,7 +25,7 @@ def _App_id() -> str:
 
 class QlikScript:
     def __init__(self, api_key: str, app_id: str):
-        self.api_key = api_key
+        self.api_key = os.getenv("_QLIK_API_KEY_")
         self.app_id = app_id
         self.base_url = "https://climber-se.eu.qlikcloud.com/api/v1"
         self.headers = {
