@@ -17,7 +17,7 @@ def get(App_Name:str):
     Qlik.save_tabs_as_qvs_files(app_script_tabbed)
 
 
-def publish(App_Name:str):
+def set(App_Name:str):
     """Set script in Qlik app with validation."""
     print(f"Running publish({App_Name})")
     Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
@@ -27,13 +27,13 @@ def publish(App_Name:str):
     print("VALIDATING SCRIPT SYNTAX")
     Qlik.validate_script_syntax(script_tabbed)
     print("____________")
-    print("SETTING SCRIPT")
-    Qlik.set_app_script(script_tabbed, "test")
+    print("PUBLISHING SCRIPT")
+    Qlik.publish_app_script(script_tabbed, "test")
 
 
-def remove(App_Name:str = None):
+def rem(App_Name:str = None):
     """Empty the script directory."""
-    print(f"Running remove({App_Name})")
+    print(f"Running rem({App_Name})")
     Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
     Qlik.empty_script_directory()
 
@@ -80,18 +80,28 @@ def load(App_Name:str):
         print(f"Reload ID: {reload_id}")
         print("You can check the status later using: Qlik.get_reload_log(reload_id)")
 
+def pub(App_Name:str = None):
+    """Publish app in Shared Space to Managed Space."""
+    print(f"Running Publish({App_Name})")
+    Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
+    Qlik.republish_app()
+
+
+
 def help():
     print("Available commands:")
     print("🟢 get - Get script from Qlik app: qlik get <app_name>")
-    print("🟢 publish - Publish local script to Qlik app: qlik publish <app_name>")
-    print("🟢 load - Reload Qlik app in Cloud Environment: qlik load <app_name>")
-    print("🟢 remove - Empty the local script directory: qlik remove <app_name>")
+    print("🟢 set - Set script in Qlik app with validation: qlik set <app_name>")
+    print("🟢 load - Reload Qlik app in Shared Space: qlik load <app_name>")
+    print("🟢 rem - Empty the local script directory for app: qlik rem <app_name>")
+    print("🟢 pub - Publish Qlik app in Shared Space to Managed Space: qlik pub <app_name>")
 
 commands = {
     "get": get,
-    "publish": publish,
-    "remove": remove,
+    "set": set,
+    "rem": rem,
     "load": load,
+    "pub": pub,
     "help": help
 }
 
@@ -110,11 +120,15 @@ except ValueError as e:
 
 if tool_to_run == "get":
     get(sys.argv[2]) 
-elif tool_to_run == "publish":
-    publish(sys.argv[2])
-elif tool_to_run == "remove":
-    remove(sys.argv[2])
+elif tool_to_run == "set":
+    set(sys.argv[2])
 elif tool_to_run == "load":
     load(sys.argv[2])
+elif tool_to_run == "pub":
+    pub(sys.argv[2])
+elif tool_to_run == "rem":
+    rem(sys.argv[2])
 elif tool_to_run == "help":
     help()
+
+ 

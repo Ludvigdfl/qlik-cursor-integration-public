@@ -35,6 +35,8 @@ class QlikScript:
         app_name_raw = self.get_app_info()["attributes"]["name"]
         # Sanitize app_name for use in file paths
         self.app_name = re.sub(r'[<>:"/\\|?*]', '_', app_name_raw)
+        self.app_item_id = self.get_app_item_id()
+        self.app_published_id = self.get_app_published_id()
     
     @staticmethod
     def _get_project_root() -> Path:
@@ -273,7 +275,7 @@ class QlikScript:
         combined_script = "\r\r".join(combined_parts)
         return combined_script
 
-    def set_app_script(self, app_script_string: str, version_message: str = "test") -> Dict:
+    def publish_app_script(self, app_script_string: str, version_message: str = "test") -> Dict:
         payload = {
             "script": app_script_string,
             "versionMessage": version_message
@@ -397,4 +399,24 @@ class QlikScript:
         print(json.dumps(response.json(), indent=2))
         return response
     
+    def get_app_published_id(self) -> str:
+        url = f"{self.base_url}/items/{self.app_item_id}/publisheditems"
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        app_published_version = response.json()["data"][0] 
+        
+        return app_published_version["resourceId"]
+      
+    def get_app_item_id(self) -> str:
+        url = f"{self.base_url}/items?resourceId={self.app_id}&resourceType=app"
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()["data"][0]["id"]
+    
+    def republish_app(self) -> Dict:
+        url = f"{self.base_url}/apps/{self.app_id}/publish"
+        payload = {"targetId": self.app_published_id}
+        response = requests.put(url, headers=self.headers, json=payload)
+        response.raise_for_status()
+        return response.json()
     
