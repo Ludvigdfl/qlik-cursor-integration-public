@@ -47,7 +47,7 @@ class QlikScript:
 
     def empty_script_directory(self):
         project_root = self._get_project_root()
-        scripts_dir = project_root / "scripts" / self.app_name / self.app_id
+        scripts_dir = project_root / "scripts" / self.app_name
         app_dir = project_root / "scripts" / self.app_name
         
         # Remove app_id directory and its contents
@@ -101,6 +101,7 @@ class QlikScript:
         response.raise_for_status()
         return response.json()["script"]
     
+
     def parse_script_tabs(self, script: str) -> Dict[str, str]:
         """
         Parse a Qlik script and split it by tab markers (///$tab _NAMEOFTAB_).
@@ -217,7 +218,7 @@ class QlikScript:
                 if f not in ordered_files:
                     ordered_files.append(f)
         else:
-            # Sort descending based on first 3 characters of filename
+            # Sort descending based on first 3 characters of filename (i___tab_name)
             ordered_files = sorted(qvs_files, key=lambda x: x.stem[:3] if len(x.stem) >= 3 else x.stem, reverse=True)
         
         combined_script = []

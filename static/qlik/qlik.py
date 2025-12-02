@@ -33,7 +33,7 @@ def publish(App_Name:str):
     Qlik.set_app_script(script_tabbed, "test")
 
 
-def remove(App_Name:str):
+def remove(App_Name:str = None):
     """Empty the script directory."""
     print(f"Running remove({App_Name})")
     Qlik = QlikScript(os.getenv("Qlik_Climber_API_For_Cursor"),_App_id()[App_Name])
