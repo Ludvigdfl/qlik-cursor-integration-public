@@ -80,13 +80,19 @@ def load(App_Name:str):
         print(f"Reload ID: {reload_id}")
         print("You can check the status later using: Qlik.get_reload_log(reload_id)")
 
-
+def help():
+    print("Available commands:")
+    print("🟢 get - Get script from Qlik app: qlik get <app_name>")
+    print("🟢 publish - Publish local script to Qlik app: qlik publish <app_name>")
+    print("🟢 load - Reload Qlik app in Cloud Environment: qlik load <app_name>")
+    print("🟢 remove - Empty the local script directory: qlik remove <app_name>")
 
 commands = {
     "get": get,
     "publish": publish,
     "remove": remove,
-    "load": load
+    "load": load,
+    "help": help
 }
 
 try:
@@ -110,3 +116,5 @@ elif tool_to_run == "remove":
     remove(sys.argv[2])
 elif tool_to_run == "load":
     load(sys.argv[2])
+elif tool_to_run == "help":
+    help()
