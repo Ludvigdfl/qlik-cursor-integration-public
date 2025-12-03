@@ -10,33 +10,18 @@ from pathlib import Path
 from typing import Dict, List, Iterator
 
 
-def _App_id() -> str:
-
-    Extract    = "e60b66ef-378d-4976-b8f4-9039796afa23"
-    Transform  = "b9cfa507-0024-4c3b-8295-1c344f12e5b7"
-    Load       = "f97e7f7c-f090-4892-8185-48ce4448b9a7"
-    
-    return {
-        "Extract": Extract,
-        "Transform": Transform,
-        "Load": Load
-    }
-
-
 class QlikScript:
-    def __init__(self, api_key: str, app_id: str):
+    def __init__(self,app_id: str):
         self.api_key = os.getenv("_QLIK_API_KEY_")
         self.app_id = app_id
         self.base_url = "https://climber-se.eu.qlikcloud.com/api/v1"
         self.headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
         app_name_raw = self.get_app_info()["attributes"]["name"]
         # Sanitize app_name for use in file paths
         self.app_name = re.sub(r'[<>:"/\\|?*]', '_', app_name_raw)
-        self.app_item_id = self.get_app_item_id()
-        self.app_published_id = self.get_app_published_id()
     
     @staticmethod
     def _get_project_root() -> Path:
@@ -400,23 +385,41 @@ class QlikScript:
         return response
     
     def get_app_published_id(self) -> str:
-        url = f"{self.base_url}/items/{self.app_item_id}/publisheditems"
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        app_published_version = response.json()["data"][0] 
-        
-        return app_published_version["resourceId"]
-      
-    def get_app_item_id(self) -> str:
+
+        # Get unique ItemID for the app (AppID and ItemID are not the same)
         url = f"{self.base_url}/items?resourceId={self.app_id}&resourceType=app"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        return response.json()["data"][0]["id"]
-    
-    def republish_app(self) -> Dict:
+        app_item_id = response.json()["data"][0]["id"]
+ 
+        # Get unique AppID for the published version of the app
+        url = f"{self.base_url}/items/{app_item_id}/publisheditems"
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        
+        response = response.json()
+        response_data = response.get("data", [])
+        
+        if not response_data or "resourceId" not in response_data[0]:
+            raise ValueError("Published app not found or invalid response structure. If app has never been published, publish it once from the UI first.")
+        
+        return response_data[0]["resourceId"]
+         
+
+    def publish_app(self):
+
+        app_published_id = self.get_app_published_id()
+
         url = f"{self.base_url}/apps/{self.app_id}/publish"
-        payload = {"targetId": self.app_published_id}
+        payload = {"targetId": app_published_id}
         response = requests.put(url, headers=self.headers, json=payload)
         response.raise_for_status()
-        return response.json()
-    
+        
+        response_json = response.json()
+        attributes = response_json.get("attributes", {})
+        
+        if response.status_code != 200:
+            raise ValueError(f"Failed to publish app: {response.status_code} {response.text}")
+        else:
+            print(f"✅ ´{attributes.get('name')}´ published successfully")
+            
