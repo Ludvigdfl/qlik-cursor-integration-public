@@ -2,56 +2,58 @@ import sys
 import os
 import time
 from qlik_script import QlikScript 
+import json
+# def _App_id() -> str:
 
-def _App_id() -> str:
-
-    Extract    = "e60b66ef-378d-4976-b8f4-9039796afa23"
-    Transform  = "b9cfa507-0024-4c3b-8295-1c344f12e5b7"
-    Load       = "f97e7f7c-f090-4892-8185-48ce4448b9a7"
+#     Extract    = "e60b66ef-378d-4976-b8f4-9039796afa23"
+#     Transform  = "b9cfa507-0024-4c3b-8295-1c344f12e5b7"
+#     Load       = "f97e7f7c-f090-4892-8185-48ce4448b9a7"
     
-    return {
-        "Extract": Extract,
-        "Transform": Transform,
-        "Load": Load
-    }
+#     return {
+#         "Extract": Extract,
+#         "Transform": Transform,
+#         "Load": Load
+#     }
+
+def _App_id(AppName:str) -> str:
+
+    with open("static/qlik/apps/apps.json", "r") as f:
+        apps = json.load(f)
+    
+    return {app["appName"] : app["appId"] for app in apps}[AppName]
 
 
 def get(App_Name:str):
     """Get script from Qlik app, parse tabs, and save to files."""
-    Qlik = QlikScript(_App_id()[App_Name])
+    Qlik = QlikScript()
+    Qlik.empty_script_directory(App_Name)
 
-    Qlik.empty_script_directory()
-
-    app_script        = Qlik.get_script()
+    app_script        = Qlik.get_script(App_Name)
     app_script_tabbed = Qlik.parse_script_tabs(app_script)
 
-    Qlik.save_tabs_as_qvs_files(app_script_tabbed)
+    Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name)
 
 
 def set(App_Name:str):
     """Set script in Qlik app with validation."""
-    Qlik = QlikScript(_App_id()[App_Name])
-    script_tabbed = Qlik.get_app_script_tabbed()
+    Qlik = QlikScript()
+    script_tabbed = Qlik.get_app_script_tabbed(App_Name)
 
-    print("____________")
-    print("VALIDATING SCRIPT SYNTAX")
+    print("Script syntax validation:")
     Qlik.validate_script_syntax(script_tabbed)
-    print("____________")
-    print("PUBLISHING SCRIPT")
-    Qlik.publish_app_script(script_tabbed, "test")
-
+    Qlik.publish_app_script(script_tabbed, App_Name, "test")
+    print("Script set successfully")
 
 def rem(App_Name:str):
     """Empty the script directory."""
-    Qlik = QlikScript(_App_id()[App_Name])
-    Qlik.empty_script_directory()
+    Qlik = QlikScript()
+    Qlik.empty_script_directory(App_Name)
 
 
 def load(App_Name:str):
     """Reload app and stream reload logs."""
-    Qlik = QlikScript(_App_id()[App_Name])
-    
-    reload_id = Qlik.reload_app()
+    Qlik = QlikScript()
+    reload_id = Qlik.reload_app(App_Name)
     
     # Stream logs with terminal clearing to mimic real-time streaming
     print("Streaming reload logs (press Ctrl+C to stop):\n")
@@ -90,8 +92,12 @@ def load(App_Name:str):
 
 def pub(App_Name:str = None):
     """Publish app in Shared Space to Managed Space."""
-    Qlik = QlikScript(_App_id()[App_Name])
-    Qlik.publish_app()
+    Qlik = QlikScript()
+    Qlik.publish_app(App_Name)
+
+def refresh():
+    """Get all apps from the Qlik shared space."""
+    QlikScript().get_apps()
 
 
 
@@ -110,7 +116,8 @@ commands = {
     "rem": rem,
     "load": load,
     "pub": pub,
-    "help": help
+    "refresh": refresh,
+    "help": help,
 }
 
 try:
@@ -136,6 +143,8 @@ elif tool_to_run == "rem":
     rem(sys.argv[2])
 elif tool_to_run == "pub":
     pub(sys.argv[2])
+elif tool_to_run == "refresh":
+    refresh()
 elif tool_to_run == "help":
     help()
 
