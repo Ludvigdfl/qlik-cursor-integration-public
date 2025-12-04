@@ -1,27 +1,6 @@
 import sys
-import os
 import time
 from qlik_script import QlikScript 
-import json
-# def _App_id() -> str:
-
-#     Extract    = "e60b66ef-378d-4976-b8f4-9039796afa23"
-#     Transform  = "b9cfa507-0024-4c3b-8295-1c344f12e5b7"
-#     Load       = "f97e7f7c-f090-4892-8185-48ce4448b9a7"
-    
-#     return {
-#         "Extract": Extract,
-#         "Transform": Transform,
-#         "Load": Load
-#     }
-
-def _App_id(AppName:str) -> str:
-
-    with open("static/qlik/apps/apps.json", "r") as f:
-        apps = json.load(f)
-    
-    return {app["appName"] : app["appId"] for app in apps}[AppName]
-
 
 def get(App_Name:str):
     """Get script from Qlik app, parse tabs, and save to files."""
@@ -44,10 +23,22 @@ def set(App_Name:str):
     Qlik.publish_app_script(script_tabbed, App_Name, "test")
     print(f"{App_Name} script set successfully")
 
+
 def rem(App_Name:str):
     """Empty the script directory."""
     Qlik = QlikScript()
     Qlik.empty_script_directory(App_Name)
+
+
+def pub(App_Name:str = None):
+    """Publish app in Shared Space to Managed Space."""
+    Qlik = QlikScript()
+    Qlik.publish_app(App_Name)
+
+
+def refresh():
+    """Get all apps from the Qlik shared space."""
+    QlikScript().get_apps()
 
 
 def load(App_Name:str):
@@ -89,15 +80,6 @@ def load(App_Name:str):
         print("\n\nReload monitoring interrupted by user.")
         print(f"Reload ID: {reload_id}")
         print("You can check the status later using: Qlik.get_reload_log(reload_id)")
-
-def pub(App_Name:str = None):
-    """Publish app in Shared Space to Managed Space."""
-    Qlik = QlikScript()
-    Qlik.publish_app(App_Name)
-
-def refresh():
-    """Get all apps from the Qlik shared space."""
-    QlikScript().get_apps()
 
 
 
