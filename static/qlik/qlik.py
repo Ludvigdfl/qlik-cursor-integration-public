@@ -42,7 +42,7 @@ def set(App_Name:str):
     print("Script syntax validation:")
     Qlik.validate_script_syntax(script_tabbed)
     Qlik.publish_app_script(script_tabbed, App_Name, "test")
-    print("Script set successfully")
+    print(f"{App_Name} script set successfully")
 
 def rem(App_Name:str):
     """Empty the script directory."""
@@ -104,9 +104,9 @@ def refresh():
 def help():
     print("Available commands:")
     print("🟢 qlik get <app_name>:  Get script from the Qlik shared space app")
-    print("🟢 qlik set <app_name>:  Set script for Qlik shared space app")
+    print("🟢 qlik set <app_name>:  Set script for the Qlik shared space app")
     print("🟢 qlik load <app_name>: Reload the Qlik shared space app")
-    print("🟢 qlik pub <app_name>:  Publish the Qlik shared space app to the Qlik managed space")
+    print("🟢 qlik pub <app_name>:  Publish the Qlik shared space app to the Qlik managed space app")
     print("🟢 qlik rem <app_name>:  Empty the local script directory for app")
 
 
