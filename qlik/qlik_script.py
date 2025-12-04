@@ -98,8 +98,6 @@ class QlikScript:
         return response.json()["script"]
          
   
-    
-
     def parse_script_tabs(self, script: str) -> Dict[str, str]:
         """
         Parse a Qlik script and split it by tab markers (///$tab _TAB_).
@@ -141,7 +139,6 @@ class QlikScript:
             
             tab_content = script[start_pos:end_pos].strip()
             tabs[tab_name] = tab_content
-        
         
         return tabs
 
@@ -256,6 +253,7 @@ class QlikScript:
         
         return tabs
 
+
     def get_app_script_tabbed(self, app_name: str) -> str:
         app_info = self.get_app_by_name(app_name)
         project_root = self._get_project_root()
@@ -290,6 +288,7 @@ class QlikScript:
         combined_script = "\r\r".join(combined_parts)
         return combined_script
 
+
     def publish_app_script(self, app_script_string: str, app_name: str, version_message: str = "test") -> Dict:
         app_info = self.get_app_by_name(app_name)
         payload = {
@@ -307,6 +306,7 @@ class QlikScript:
         response.raise_for_status()
         
         return response
+
 
     def reload_app(self, app_name: str, weight: int = 1, partial: bool = False) -> str:
         app_info = self.get_app_by_name(app_name)
@@ -330,6 +330,7 @@ class QlikScript:
         response.raise_for_status()
         return response.json()
     
+
     @staticmethod
     def _clear_terminal():
         """Clear the terminal screen (cross-platform)."""
@@ -338,6 +339,7 @@ class QlikScript:
         else:
             os.system('clear')
     
+
     def stream_reload_log(self, reload_id: str, poll_interval: float = 1.0, 
                          clear_on_update: bool = False) -> Iterator[Dict]:
         """
@@ -416,6 +418,7 @@ class QlikScript:
         print(json.dumps(response.json(), indent=2))
         return response
     
+
     def get_app_published_id(self, app_name: str) -> str:
         app_info = self.get_app_by_name(app_name)
         # Get unique ItemID for the app (AppID and ItemID are not the same)
@@ -462,4 +465,3 @@ class QlikScript:
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json() 
-    
