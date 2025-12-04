@@ -19,41 +19,43 @@ class QlikScript:
             "Content-Type": "application/json"
         }
     
-    @staticmethod
-    def _get_app_info_from_json(app_name: str) -> Dict:
-        """Get app info (appId, appName) from apps_shared.json by app_name."""
-        apps_file = QlikScript._get_project_root() / "static/qlik/apps/apps_shared.json"
-        if not apps_file.exists():
-            raise FileNotFoundError(f"apps_shared.json not found at {apps_file}")
+ 
+    def get_app_by_name(self, app_name: str) -> Dict:
+        """Get app info (appName) by app_name."""
+        url = f"{self.base_url}/items?resourceType=app&limit=1&name={app_name}"
+    
+        # Fetch all pages of data
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        response = response.json()
         
-        with open(apps_file, "r", encoding="utf-8") as f:
-            apps = json.load(f)
+        response_data = response.get("data", [])
+        if not response_data:
+            raise ValueError(f"No app found with name {app_name}")
         
-        for app in apps:
-            if app.get("appName") == app_name:
-                return {
-                    "appId": app.get("appId"),
-                    "appName": app.get("appName"),
-                    "sanitizedAppName": re.sub(r'[<>:"/\\|?*]', '_', app.get("appName", ""))
-                }
+        app = response_data[0]
+
+        app_dict = {
+            "sanitizedAppName": re.sub(r'[<>:"/\\|?*]', '_', app.get("name", "")),
+            "appName": app.get("name"), 
+            "appId": app.get("resourceId"), 
+            "appItemId": app.get("id"),
+            "spaceId": app.get("spaceId"),
+        }
+
+        if "spaceId" in app_dict and len(app_dict["spaceId"]) > 0:
+            app_dict["spaceType"] = self.get_space_type(app_dict["spaceId"])["type"]
+            app_dict["spaceName"] = self.get_space_type(app_dict["spaceId"])["name"]
         
-        raise ValueError(f"App '{app_name}' not found in apps_shared.json")
+        return app_dict
     
     @staticmethod
     def _get_project_root() -> Path:
-        """Get the project root directory (where the scripts folder is located)."""
-        # Get the directory of this file (static/qlik/)
-        current_file = Path(__file__).resolve()
-        current_folder = Path.cwd()
-        
-        print("current_folder: ", current_folder)
-        
-        # Go up two levels to get to project root
-        project_root = current_file.parent.parent.parent
-        return current_folder #project_root
+        """Get the project root directory (where the scripts folder is located)."""    
+        return Path.cwd()
 
     def empty_script_directory(self, app_name: str):
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         project_root = self._get_project_root()
         scripts_dir = project_root / "scripts" / app_info["sanitizedAppName"]
         app_dir = project_root / "scripts" / app_info["sanitizedAppName"]
@@ -67,7 +69,7 @@ class QlikScript:
             app_dir.rmdir()
 
     def get_app_info(self, app_name: str) -> Dict:
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         url = f"{self.base_url}/apps/{app_info['appId']}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
@@ -75,7 +77,7 @@ class QlikScript:
     
 
     def get_script(self, app_name: str) -> Dict:
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         self.empty_script_directory(app_name)
         url = f"{self.base_url}/apps/{app_info['appId']}/scripts"
         response = requests.get(url, headers=self.headers)
@@ -155,7 +157,7 @@ class QlikScript:
         Returns:
             List of file paths created
         """
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         # Create output directory: scripts/{app_name}/{app_id}
         project_root = self._get_project_root()
         output_dir = project_root / "scripts" / app_info["sanitizedAppName"] / app_info["appId"]
@@ -192,7 +194,7 @@ class QlikScript:
         Returns:
             Combined script string with tab markers
         """
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         project_root = self._get_project_root()
         scripts_path = project_root / "scripts" / app_info["sanitizedAppName"] / app_info["appId"]
         
@@ -255,7 +257,7 @@ class QlikScript:
         return tabs
 
     def get_app_script_tabbed(self, app_name: str) -> str:
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         project_root = self._get_project_root()
         script_dir = project_root / "scripts" / app_info["sanitizedAppName"] / app_info["appId"]
         
@@ -289,7 +291,7 @@ class QlikScript:
         return combined_script
 
     def publish_app_script(self, app_script_string: str, app_name: str, version_message: str = "test") -> Dict:
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         payload = {
             "script": app_script_string,
             "versionMessage": version_message
@@ -307,7 +309,7 @@ class QlikScript:
         return response
 
     def reload_app(self, app_name: str, weight: int = 1, partial: bool = False) -> str:
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         url = f"{self.base_url}/reloads"
         payload = {
             "appId": app_info["appId"],
@@ -415,7 +417,7 @@ class QlikScript:
         return response
     
     def get_app_published_id(self, app_name: str) -> str:
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         # Get unique ItemID for the app (AppID and ItemID are not the same)
         url = f"{self.base_url}/items?resourceId={app_info['appId']}&resourceType=app"
         response = requests.get(url, headers=self.headers)
@@ -437,7 +439,7 @@ class QlikScript:
          
 
     def publish_app(self, app_name: str):
-        app_info = self._get_app_info_from_json(app_name)
+        app_info = self.get_app_by_name(app_name)
         app_published_id = self.get_app_published_id(app_name)
 
         url = f"{self.base_url}/apps/{app_info['appId']}/publish"
@@ -460,63 +462,4 @@ class QlikScript:
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json() 
-    
-
-    def get_apps(self) -> List[Dict]:
-        
-        url = f"{self.base_url}/items?resourceType=app&limit=100&spaceType=shared"
-        
-        # Fetch all pages of data
-        all_response_data = []
-        current_url = url
-        i = 0
-        
-        while current_url:
-            response = requests.get(current_url, headers=self.headers)
-            response.raise_for_status()
-            response_json = response.json()
-            
-            # Extract data from current page
-            page_data = response_json.get("data", [])
-            all_response_data.extend(page_data)
-            
-            # Check for next page
-            links = response_json.get("links", {})
-            next_link = links.get("next", {})
-            current_url = next_link.get("href") if next_link else None
-            i += 1
-            print(f"Page {i*100} fetched")
-        if not all_response_data:
-            raise ValueError("No apps found")
-        
-        # Build list of apps with name and spaceId
-        apps_list = []
-        space_ids = set()
-         
-        for i, app in enumerate(all_response_data):
-            print(f"App {i+1} of {len(all_response_data)} fetched")
-            app_dict = {"appName": app.get("name"), "appId": app.get("resourceId"), "appItemId": app.get("id")}
-            if "spaceId" in app:
-                app_dict["spaceId"] = app["spaceId"]
-                space_ids.add(app["spaceId"])
-            apps_list.append(app_dict)
-        
-        # Fetch space info for each unique spaceId
-        space_info_cache = {}
-        for space_id in space_ids:
-            space_info = self.get_space_type(space_id)
-            space_info_cache[space_id] = space_info
-        
-        # Append space info to each app
-        for app in apps_list:
-            if "spaceId" in app:
-                app["spaceType"] = space_info_cache.get(app["spaceId"]).get("type")
-                app["spaceName"] = space_info_cache.get(app["spaceId"]).get("name")
-
-
-        apps_shared =  [app for app in apps_list if "spaceType" in app and app["spaceType"] == "shared"]
-        with open(self._get_project_root() / "static/qlik/apps/apps_shared.json", "w") as f:
-            json.dump(apps_shared, f, indent=2)
- 
-            
     
