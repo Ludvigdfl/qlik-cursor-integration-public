@@ -36,11 +36,6 @@ def pub(App_Name:str = None):
     Qlik.publish_app(App_Name)
 
 
-def refresh():
-    """Get all apps from the Qlik shared space."""
-    QlikScript().get_apps()
-
-
 def load(App_Name:str):
     """Reload app and stream reload logs."""
     Qlik = QlikScript()
@@ -98,7 +93,6 @@ commands = {
     "rem": rem,
     "load": load,
     "pub": pub,
-    "refresh": refresh,
     "help": help,
 }
 
@@ -125,8 +119,6 @@ elif tool_to_run == "rem":
     rem(sys.argv[2])
 elif tool_to_run == "pub":
     pub(sys.argv[2])
-elif tool_to_run == "refresh":
-    refresh()
 elif tool_to_run == "help":
     help()
 
