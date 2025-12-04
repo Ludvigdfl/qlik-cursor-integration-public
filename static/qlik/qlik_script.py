@@ -44,9 +44,13 @@ class QlikScript:
         """Get the project root directory (where the scripts folder is located)."""
         # Get the directory of this file (static/qlik/)
         current_file = Path(__file__).resolve()
+        current_folder = Path.cwd()
+        
+        print("current_folder: ", current_folder)
+        
         # Go up two levels to get to project root
         project_root = current_file.parent.parent.parent
-        return project_root
+        return current_folder #project_root
 
     def empty_script_directory(self, app_name: str):
         app_info = self._get_app_info_from_json(app_name)
