@@ -12,8 +12,8 @@ from typing import Dict, List, Iterator
 
 class QlikScript:
     def __init__(self):
-        self.api_key = os.getenv("_QLIK_API_KEY_")
-        self.base_url = "https://climber-se.eu.qlikcloud.com/api/v1"
+        self.api_key = os.getenv("_QLIK_API_COPIAX_")
+        self.base_url = "https://copiax.eu.qlikcloud.com/api/v1"
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -312,12 +312,7 @@ class QlikScript:
             "script": app_script_string,
             "versionMessage": version_message
         }
-        
-        project_root = self._get_project_root()
-        script_json_path = project_root / "scripts" / f"{app_info['sanitizedAppName']}/{app_info['appId']}.json"
-        with open(script_json_path, 'w', encoding='utf-8') as f:
-            json.dump(payload, f, indent=2, ensure_ascii=False)
-        
+  
         url = f"{self.base_url}/apps/{app_info['appId']}/scripts"
         response = requests.post(url, headers=self.headers, json=payload)
         response.raise_for_status()
