@@ -115,21 +115,28 @@ if tool_to_run == "get":
         get(sys.argv[2], sys.argv[3])
     else:
         get(sys.argv[2]) 
+
 elif tool_to_run == "set":
     if len(sys.argv) > 3:
         set(sys.argv[2], sys.argv[3])
     else:
         set(sys.argv[2])
+
 elif tool_to_run == "load":
     if len(sys.argv) > 3:
         load(sys.argv[2], sys.argv[3])
     else:
         load(sys.argv[2])
+
 elif tool_to_run == "pub":
     if len(sys.argv) > 3:
         pub(sys.argv[2], sys.argv[3])
     else:
         pub(sys.argv[2])
+
+elif tool_to_run == "rem":
+    rem(sys.argv[2])
+    
 elif tool_to_run == "help":
     help()
 
