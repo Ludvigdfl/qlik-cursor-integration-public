@@ -20,21 +20,36 @@ class QlikScript:
         }
     
  
-    def get_app_by_name(self, app_name: str) -> Dict:
+    def get_app_by_name(self, app_name: str, app_id: str = None) -> Dict:
         """Get app info (appName) by app_name."""
-        url = f"{self.base_url}/items?resourceType=app&limit=1&name={app_name}"
-    
+        
+        url = f"{self.base_url}/items?resourceType=app&spaceType=shared&limit=2&name={app_name}"
+        
+        if app_id:
+            url = f"{self.base_url}/items?resourceType=app&spaceType=shared&limit=2&name={app_name}&resourceId={app_id}"
+        
         # Fetch all pages of data
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         response = response.json()
-        
         response_data = response.get("data", [])
+        
         if not response_data:
             raise ValueError(f"No app found with name {app_name}")
         
+        multiple_apps = ''
+        for app in response_data:
+            multiple_apps += f"\n{app['name']} ({app['resourceId']})"
+            
+        if len(response_data) > 1:
+            raise ValueError(f"""Multiple apps found with name ´{app_name}´. 
+            Please provide app_id to disambiguate:
+            Available apps: 
+            {multiple_apps}
+            """)
+ 
         app = response_data[0]
-
+     
         app_dict = {
             "sanitizedAppName": re.sub(r'[<>:"/\\|?*]', '_', app.get("name", "")),
             "appName": app.get("name"), 
@@ -54,8 +69,8 @@ class QlikScript:
         """Get the project root directory (where the scripts folder is located)."""    
         return Path.cwd()
 
-    def empty_script_directory(self, app_name: str):
-        app_info = self.get_app_by_name(app_name)
+    def empty_script_directory(self, app_name: str, app_id: str = None):
+        app_info = self.get_app_by_name(app_name, app_id)
         project_root = self._get_project_root()
         scripts_dir = project_root / "scripts" / app_info["sanitizedAppName"]
         app_dir = project_root / "scripts" / app_info["sanitizedAppName"]
@@ -68,17 +83,17 @@ class QlikScript:
         if app_dir.exists() and not any(app_dir.iterdir()):
             app_dir.rmdir()
 
-    def get_app_info(self, app_name: str) -> Dict:
-        app_info = self.get_app_by_name(app_name)
+    def get_app_info(self, app_name: str, app_id: str = None) -> Dict:
+        app_info = self.get_app_by_name(app_name, app_id)
         url = f"{self.base_url}/apps/{app_info['appId']}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json()
     
 
-    def get_script(self, app_name: str) -> Dict:
-        app_info = self.get_app_by_name(app_name)
-        self.empty_script_directory(app_name)
+    def get_script(self, app_name: str, app_id: str = None) -> Dict:
+        app_info = self.get_app_by_name(app_name, app_id)
+        self.empty_script_directory(app_name, app_id)
         url = f"{self.base_url}/apps/{app_info['appId']}/scripts"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
@@ -143,18 +158,19 @@ class QlikScript:
         return tabs
 
 
-    def save_tabs_as_qvs_files(self, tabs: Dict[str, str], app_name: str) -> List[str]:
+    def save_tabs_as_qvs_files(self, tabs: Dict[str, str], app_name: str, app_id: str = None) -> List[str]:
         """
         Save each tab to a separate .qvs file.
         
         Args:
             tabs: Dictionary mapping tab names to script content
             app_name: Name of the app
+            app_id: Optional app ID to resolve ambiguous names
             
         Returns:
             List of file paths created
         """
-        app_info = self.get_app_by_name(app_name)
+        app_info = self.get_app_by_name(app_name, app_id)
         # Create output directory: scripts/{app_name}/{app_id}
         project_root = self._get_project_root()
         output_dir = project_root / "scripts" / app_info["sanitizedAppName"] / app_info["appId"]
@@ -179,19 +195,20 @@ class QlikScript:
         return created_files
 
 
-    def combine_tabs_from_files(self, app_name: str, tab_order: List[str] = None) -> str:
+    def combine_tabs_from_files(self, app_name: str, app_id: str = None, tab_order: List[str] = None) -> str:
         """
         Combine multiple .qvs files back into a single Qlik script with tab markers.
         
         Args:
             app_name: Name of the app
+            app_id: Optional app ID to resolve ambiguous names
             tab_order: Optional list specifying the order of tabs. 
                     If None, files are sorted alphabetically.
                     
         Returns:
             Combined script string with tab markers
         """
-        app_info = self.get_app_by_name(app_name)
+        app_info = self.get_app_by_name(app_name, app_id)
         project_root = self._get_project_root()
         scripts_path = project_root / "scripts" / app_info["sanitizedAppName"] / app_info["appId"]
         
@@ -244,18 +261,18 @@ class QlikScript:
         return "\r\r".join(combined_script)
     
 
-    def parse_script_to_tabs(self) -> Dict[str, str]:
-        script_data = self.get_app_script_by_id()
-        script_content = script_data.get("script", "")
-        tabs = self.parse_script_tabs(script_content)
+    # def parse_script_to_tabs(self) -> Dict[str, str]:
+    #     script_data = self.get_app_script_by_id()
+    #     script_content = script_data.get("script", "")
+    #     tabs = self.parse_script_tabs(script_content)
         
-        self.save_tabs_to_files(tabs)
+    #     self.save_tabs_as_qvs_files(tabs, app_name)
         
-        return tabs
+    #     return tabs
 
 
-    def get_app_script_tabbed(self, app_name: str) -> str:
-        app_info = self.get_app_by_name(app_name)
+    def get_app_script_tabbed(self, app_name: str, app_id: str = None) -> str:
+        app_info = self.get_app_by_name(app_name, app_id)
         project_root = self._get_project_root()
         script_dir = project_root / "scripts" / app_info["sanitizedAppName"] / app_info["appId"]
         
@@ -289,8 +306,8 @@ class QlikScript:
         return combined_script
 
 
-    def publish_app_script(self, app_script_string: str, app_name: str, version_message: str = "test") -> Dict:
-        app_info = self.get_app_by_name(app_name)
+    def publish_app_script(self, app_script_string: str, app_name: str, app_id: str = None, version_message: str = "test") -> Dict:
+        app_info = self.get_app_by_name(app_name, app_id)
         payload = {
             "script": app_script_string,
             "versionMessage": version_message
@@ -308,8 +325,8 @@ class QlikScript:
         return response
 
 
-    def reload_app(self, app_name: str, weight: int = 1, partial: bool = False) -> str:
-        app_info = self.get_app_by_name(app_name)
+    def reload_app(self, app_name: str, app_id: str = None, weight: int = 1, partial: bool = False) -> str:
+        app_info = self.get_app_by_name(app_name, app_id)
         url = f"{self.base_url}/reloads"
         payload = {
             "appId": app_info["appId"],
@@ -419,8 +436,8 @@ class QlikScript:
         return response
     
 
-    def get_app_published_id(self, app_name: str) -> str:
-        app_info = self.get_app_by_name(app_name)
+    def get_app_published_id(self, app_name: str, app_id: str = None) -> str:
+        app_info = self.get_app_by_name(app_name, app_id)
         # Get unique ItemID for the app (AppID and ItemID are not the same)
         url = f"{self.base_url}/items?resourceId={app_info['appId']}&resourceType=app"
         response = requests.get(url, headers=self.headers)
@@ -441,9 +458,9 @@ class QlikScript:
         return response_data[0]["resourceId"]
          
 
-    def publish_app(self, app_name: str):
-        app_info = self.get_app_by_name(app_name)
-        app_published_id = self.get_app_published_id(app_name)
+    def publish_app(self, app_name: str, app_id: str = None):
+        app_info = self.get_app_by_name(app_name, app_id)
+        app_published_id = self.get_app_published_id(app_name, app_id)
 
         url = f"{self.base_url}/apps/{app_info['appId']}/publish"
         payload = {"targetId": app_published_id}
