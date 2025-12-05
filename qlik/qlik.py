@@ -2,44 +2,44 @@ import sys
 import time
 from qlik_script import QlikScript 
 
-def get(App_Name:str):
+def get(App_Name:str, App_Id:str = None):
     """Get script from Qlik app, parse tabs, and save to files."""
     Qlik = QlikScript()
-    Qlik.empty_script_directory(App_Name)
+    Qlik.empty_script_directory(App_Name, App_Id)
 
-    app_script        = Qlik.get_script(App_Name)
+    app_script        = Qlik.get_script(App_Name, App_Id)
     app_script_tabbed = Qlik.parse_script_tabs(app_script)
 
-    Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name)
+    Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name, App_Id)
 
 
-def set(App_Name:str):
+def set(App_Name:str, App_Id:str = None):
     """Set script in Qlik app with validation."""
     Qlik = QlikScript()
-    script_tabbed = Qlik.get_app_script_tabbed(App_Name)
+    script_tabbed = Qlik.get_app_script_tabbed(App_Name, App_Id)
 
     print("Script syntax validation:")
     Qlik.validate_script_syntax(script_tabbed)
-    Qlik.publish_app_script(script_tabbed, App_Name, "test")
+    Qlik.publish_app_script(script_tabbed, App_Name, App_Id, version_message="test")
     print(f"{App_Name} script set successfully")
 
 
-def rem(App_Name:str):
+def rem(App_Name:str, App_Id:str = None):
     """Empty the script directory."""
     Qlik = QlikScript()
-    Qlik.empty_script_directory(App_Name)
+    Qlik.empty_script_directory(App_Name, App_Id)
 
 
-def pub(App_Name:str = None):
+def pub(App_Name:str, App_Id:str = None):
     """Publish app in Shared Space to Managed Space."""
     Qlik = QlikScript()
-    Qlik.publish_app(App_Name)
+    Qlik.publish_app(App_Name, App_Id)
 
 
-def load(App_Name:str):
+def load(App_Name:str, App_Id:str = None):
     """Reload app and stream reload logs."""
     Qlik = QlikScript()
-    reload_id = Qlik.reload_app(App_Name)
+    reload_id = Qlik.reload_app(App_Name, App_Id)
     
     # Stream logs with terminal clearing to mimic real-time streaming
     print("Streaming reload logs (press Ctrl+C to stop):\n")
@@ -80,11 +80,11 @@ def load(App_Name:str):
 
 def help():
     print("Available commands:")
-    print("🟢 qlik get <app_name>:  Get script from the Qlik shared space app")
-    print("🟢 qlik set <app_name>:  Set script for the Qlik shared space app")
-    print("🟢 qlik load <app_name>: Reload the Qlik shared space app")
-    print("🟢 qlik pub <app_name>:  Publish the Qlik shared space app to the Qlik managed space app")
-    print("🟢 qlik rem <app_name>:  Empty the local script directory for app")
+    print("🟢 qlik get  <app_name>  [<app_id>]: Get script from the Qlik shared space app")
+    print("🟢 qlik set  <app_name>  [<app_id>]: Set script for the Qlik shared space app")
+    print("🟢 qlik load <app_name>  [<app_id>]: Reload the Qlik shared space app")
+    print("🟢 qlik pub  <app_name>  [<app_id>]: Publish the Qlik shared space app to the Qlik managed space app")
+    print("🟢 qlik rem  <app_name>  [<app_id>]: Empty the local script directory for app")
 
 
 commands = {
@@ -109,16 +109,27 @@ except ValueError as e:
     print(e)
     sys.exit(1)
 
+
 if tool_to_run == "get":
-    get(sys.argv[2]) 
+    if len(sys.argv) > 3:
+        get(sys.argv[2], sys.argv[3])
+    else:
+        get(sys.argv[2]) 
 elif tool_to_run == "set":
-    set(sys.argv[2])
+    if len(sys.argv) > 3:
+        set(sys.argv[2], sys.argv[3])
+    else:
+        set(sys.argv[2])
 elif tool_to_run == "load":
-    load(sys.argv[2])
-elif tool_to_run == "rem":
-    rem(sys.argv[2])
+    if len(sys.argv) > 3:
+        load(sys.argv[2], sys.argv[3])
+    else:
+        load(sys.argv[2])
 elif tool_to_run == "pub":
-    pub(sys.argv[2])
+    if len(sys.argv) > 3:
+        pub(sys.argv[2], sys.argv[3])
+    else:
+        pub(sys.argv[2])
 elif tool_to_run == "help":
     help()
 
