@@ -23,14 +23,14 @@ class QlikScript:
     def get_app_by_name(self, app_name: str, app_id: str = None) -> Dict:
         """Get app info (appName) by app_name."""
         
-        url = f"{self.base_url}/items?resourceType=app&spaceType=shared&limit=2&name={app_name}"
+        url = f"{self.base_url}/items?resourceType=app&spaceType=shared&name={app_name}"
         
         if app_id:
-            url = f"{self.base_url}/items?resourceType=app&spaceType=shared&limit=2&name={app_name}&resourceId={app_id}"
+            url = f"{self.base_url}/items?resourceType=app&spaceType=shared&name={app_name}&resourceId={app_id}"
         
         # Fetch all pages of data
         response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
+        # response.raise_for_status()
         response = response.json()
         response_data = response.get("data", [])
         
@@ -42,8 +42,8 @@ class QlikScript:
             multiple_apps += f"\n{app['name']} ({app['resourceId']})"
             
         if len(response_data) > 1:
-            raise ValueError(f"""Multiple apps found with name ´{app_name}´. 
-            Please provide app_id to disambiguate:
+            raise ValueError(f"""Multiple apps found similar or equal to ´{app_name}´. 
+            Please provide more specific app_name or bothapp_name & app_id to disambiguate.
             Available apps: 
             {multiple_apps}
             """)

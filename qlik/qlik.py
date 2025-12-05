@@ -110,34 +110,43 @@ except ValueError as e:
     sys.exit(1)
 
 
-if tool_to_run == "get":
-    if len(sys.argv) > 3:
-        get(sys.argv[2], sys.argv[3])
-    else:
-        get(sys.argv[2]) 
 
-elif tool_to_run == "set":
-    if len(sys.argv) > 3:
-        set(sys.argv[2], sys.argv[3])
-    else:
-        set(sys.argv[2])
+try:
+    if tool_to_run == "get":
+        if len(sys.argv) == 4:
+            get(sys.argv[2], sys.argv[3])
+        else:
+            get(sys.argv[2])
 
-elif tool_to_run == "load":
-    if len(sys.argv) > 3:
-        load(sys.argv[2], sys.argv[3])
-    else:
-        load(sys.argv[2])
+    elif tool_to_run == "set":
+        if len(sys.argv) == 4:
+            set(sys.argv[2], sys.argv[3])
+        else:
+            set(sys.argv[2])
 
-elif tool_to_run == "pub":
-    if len(sys.argv) > 3:
-        pub(sys.argv[2], sys.argv[3])
-    else:
-        pub(sys.argv[2])
+    elif tool_to_run == "load":
+        if len(sys.argv) == 4:
+            load(sys.argv[2], sys.argv[3])
+        else:
+            load(sys.argv[2])
 
-elif tool_to_run == "rem":
-    rem(sys.argv[2])
-    
-elif tool_to_run == "help":
-    help()
+    elif tool_to_run == "pub":
+        if len(sys.argv) == 4:
+            pub(sys.argv[2], sys.argv[3])
+        else:
+            pub(sys.argv[2])
+
+    elif tool_to_run == "rem":
+        if len(sys.argv) == 4:
+            rem(sys.argv[2], sys.argv[3])
+        else:
+            rem(sys.argv[2])
+        
+    elif tool_to_run == "help":
+        help()
+
+except Exception as e:
+    print(str(e))
+    sys.exit(1)
 
  
