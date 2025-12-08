@@ -12,8 +12,10 @@ from typing import Dict, List, Iterator
 
 class QlikScript:
     def __init__(self):
-        self.api_key = os.getenv("_QLIK_API_COPIAX_")
-        self.base_url = "https://copiax.eu.qlikcloud.com/api/v1"
+        self.base_url = "https://climber-se.eu.qlikcloud.com/api/v1"
+        self.api_key = os.getenv("_QLIK_API_CLIMBER_")
+        # self.api_key = os.getenv("_QLIK_API_COPIAX_")
+        # self.base_url = "https://copiax.eu.qlikcloud.com/api/v1"
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -30,7 +32,7 @@ class QlikScript:
         
         # Fetch all pages of data
         response = requests.get(url, headers=self.headers)
-        # response.raise_for_status()
+        print(response.content)
         response = response.json()
         response_data = response.get("data", [])
         
