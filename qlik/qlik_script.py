@@ -32,7 +32,7 @@ class QlikScript:
         
         # Fetch all pages of data
         response = requests.get(url, headers=self.headers)
-        print(response.content)
+      
         response = response.json()
         response_data = response.get("data", [])
         
