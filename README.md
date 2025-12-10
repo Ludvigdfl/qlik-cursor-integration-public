@@ -16,8 +16,8 @@ Install VSCode Icons Theme (`vscode-icons-team.vscode-icons`) and activate it to
 
 ### 3. Add to Environment Variables
 
-* Expose the `qlik` command by adding the absolute path for the qlik.cmd your system environment variables.
-* Add a new entry under your "Path" environment variable e.g. `C:\Users\<YOU>\AppData\Local\Programs`.  
+* Put the root of the folder in a logical place - like  `C:\Users\<YOU>\AppData\Local\Programs\<ROOT>`
+* Expose the `qlik` command by adding the absolute path for the `qlik.cmd` to your system environment variables - `C:\Users\<YOU>\AppData\Local\Programs\Qlik_DEV\qlik`
 * This will expose `qlik.cmd` during runtime.
 
 ### 4. Set API Key
@@ -29,8 +29,9 @@ Install VSCode Icons Theme (`vscode-icons-team.vscode-icons`) and activate it to
 
 
 ## Examples
-Navigate to a new project directory:
-Run in terminal:
+⚠️ Important - Run the commands below in a separate folder - i.e. not within the root of cli files (`C:\Users\<YOU>\AppData\Local\Programs`).
+- Navigate to a new project directory:
+- Run in terminal:
 
 ```bash
 c:\users\projects\mynewproject
