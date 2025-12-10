@@ -27,6 +27,10 @@ Install VSCode Icons Theme (`vscode-icons-team.vscode-icons`) and activate it to
    - Variable name: `_QLIK_API_KEY_`
    - Variable value: Your API key
 
+### 5. Set Cloud URL
+   - Variable name: `_QLIK_TENANT_URL_`
+   - Variable value: https://your_domain.qlikcloud.com/api/v1
+1. 
 
 ## Examples
 ⚠️ Important - Run the commands below in a separate folder - i.e. not within the root of cli files (`C:\Users\<YOU>\AppData\Local\Programs`).
