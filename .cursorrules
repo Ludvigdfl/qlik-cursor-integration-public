@@ -1,0 +1,44 @@
+# Qlik Project Rules
+
+## Qlik Script Files (.qvs)
+When working with any file that has the `.qvs` extension, you MUST:
+- Use ONLY QlikView/Qlik Sense script syntax
+- Follow Qlik script conventions and best practices
+- Use proper Qlik functions (e.g., Load, Select, Where, Join, etc.)
+- Use semicolons (;) to terminate statements
+- Use proper Qlik data types and field naming conventions
+- Do NOT use SQL syntax, Python syntax, or any other programming language syntax
+- Do NOT use SQL keywords like SELECT, FROM, WHERE (use Qlik equivalents: Load, From, Where)
+- Use Qlik-specific functions like Chr(), RecNo(), Pick(), Round(), Rand(), etc.
+- Follow Qlik script structure with table names followed by colons (e.g., `TableName:`)
+- Indent all statements with the same width
+- **CRITICAL FORMATTING**: In Load statements, align all `as` keywords at the same column position, regardless of field name/expression length. Use appropriate spacing so that `as` keywords are vertically aligned.
+
+
+## Examples of Correct Qlik Syntax:
+- `Load * From [file.qvd];`
+- `Load Field1, Field2 as Alias From Table;`
+- `Where Condition = 'Value';`
+- `Join (Table) Load * From [file.qvd];`
+
+## Examples of INCORRECT Syntax (DO NOT USE):
+- SQL: `SELECT * FROM table WHERE condition;`
+- Python: `import pandas; df = pd.read_csv()`
+- Any other non-Qlik syntax
+
+## Example of CORRECT Indentation and Alignment
+Load
+    'long string value'    as DATA,
+    short                  as DATA2,
+    today()                as DATE,
+    malmö                  as CITY
+From
+    [lib://DataSource/data.qvd](qvd)
+;
+
+Note: All `as` keywords must be aligned at the same column position, even when field expressions have different lengths.
+
+
+
+When editing or creating `.qvs` files, always validate that the syntax is valid Qlik script syntax.
+

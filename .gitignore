@@ -1,0 +1,8 @@
+/scripts
+/venv
+/static/qlik/__pycache__/
+/*.pyc
+*.pyo
+*.pyd
+.Python
+static/qlik/apps/
