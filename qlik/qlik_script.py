@@ -479,11 +479,26 @@ class QlikScript:
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json() 
-
+    
+    def get_space_by_name(self, space_name: str) -> Dict:
+        
+        url = f"{self.base_url}/spaces?type=shared&limit=100"
+        response = requests.get(url, headers=self.headers)
+        
+        response.raise_for_status()
+        response = response.json()
+        response_data = response.get("data", [])
+        
+        for space in response_data:
+            if str(space["name"]).lower() == space_name.lower():
+                return space
+        raise ValueError(f"Space {space_name} not found")
 
     def get_apps_in_space(self, space_name: str) -> List[Dict]:
+        space_id = self.get_space_by_name(space_name)["id"]
+
         print(f"Getting apps in space: {space_name}")
-        url = f"{self.base_url}/items?resourceType=app&spaceType=shared&name={space_name}&limit=100"
+        url = f"{self.base_url}/items?resourceType=app&spaceType=shared&spaceId={space_id}&limit=100"
         
         response = requests.get(url, headers=self.headers)
         response = response.json()
