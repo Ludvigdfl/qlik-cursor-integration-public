@@ -12,14 +12,15 @@ from typing import Dict, List, Iterator
 
 class QlikScript:
     def __init__(self):
-        self.base_url = "https://climber-se.eu.qlikcloud.com/api/v1"
-        self.api_key = os.getenv("_QLIK_API_CLIMBER_")
-        # self.api_key = os.getenv("_QLIK_API_COPIAX_")
-        # self.base_url = "https://copiax.eu.qlikcloud.com/api/v1"
+        # self.base_url = "https://climber-se.eu.qlikcloud.com/api/v1"
+        # self.api_key = os.getenv("_QLIK_API_CLIMBER_")
+        self.api_key = os.getenv("_QLIK_API_COPIAX_")
+        self.base_url = "https://copiax.eu.qlikcloud.com/api/v1"
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
+       
     
  
     def get_app_by_name(self, app_name: str, app_id: str = None) -> Dict:
@@ -473,9 +474,18 @@ class QlikScript:
             print(f"✅ ´{attributes.get('name')}´ published successfully")
     
 
-     
     def get_space_type(self, space_id: str) -> Dict:
         url = f"{self.base_url}/spaces/{space_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json() 
+
+
+    def get_apps_in_space(self, space_name: str) -> List[Dict]:
+        print(f"Getting apps in space: {space_name}")
+        url = f"{self.base_url}/items?resourceType=app&spaceType=shared&name={space_name}&limit=100"
+        
+        response = requests.get(url, headers=self.headers)
+        response = response.json()
+        response_data = response.get("data", [])
+        return response_data

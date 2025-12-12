@@ -13,6 +13,22 @@ def get(App_Name:str, App_Id:str = None):
     Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name, App_Id)
 
 
+def get_space(Space_Name:str):
+    """Get script from all apps in shared space."""
+    Qlik = QlikScript()
+
+    apps = Qlik.get_apps_in_space(Space_Name)
+    for app in apps:
+        App_Name = app["name"]
+        App_Id = app["resourceId"]
+        Qlik.empty_script_directory(App_Name, App_Id)
+
+        app_script        = Qlik.get_script(App_Name, App_Id)
+        app_script_tabbed = Qlik.parse_script_tabs(app_script)
+
+        Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name, App_Id)
+
+
 def set(App_Name:str, App_Id:str = None):
     """Set script in Qlik app with validation."""
     Qlik = QlikScript()
@@ -80,15 +96,17 @@ def load(App_Name:str, App_Id:str = None):
 
 def help():
     print("Available commands:")
-    print("🟢 qlik get  <app_name>  [<app_id>]: Get script from the Qlik shared space app")
-    print("🟢 qlik set  <app_name>  [<app_id>]: Set script for the Qlik shared space app")
-    print("🟢 qlik load <app_name>  [<app_id>]: Reload the Qlik shared space app")
-    print("🟢 qlik pub  <app_name>  [<app_id>]: Publish the Qlik shared space app to the Qlik managed space app")
-    print("🟢 qlik rem  <app_name>  [<app_id>]: Empty the local script directory for app")
+    print("🟢 qlik get       <app_name>  [<app_id>]: Get script from the Qlik shared space app")
+    print("🟢 qlik get_space <space_name>:           Get script from all apps in shared space")
+    print("🟢 qlik set       <app_name>  [<app_id>]: Set script for the Qlik shared space app")
+    print("🟢 qlik load      <app_name>  [<app_id>]: Reload the Qlik shared space app")
+    print("🟢 qlik pub       <app_name>  [<app_id>]: Publish the Qlik shared space app to the Qlik managed space app")
+    print("🟢 qlik rem       <app_name>  [<app_id>]: Empty the local script directory for app")
 
 
 commands = {
     "get": get,
+    "get_space": get_space,
     "set": set,
     "rem": rem,
     "load": load,
@@ -117,6 +135,9 @@ try:
             get(sys.argv[2], sys.argv[3])
         else:
             get(sys.argv[2])
+
+    elif tool_to_run == "get_space":
+        get_space(sys.argv[2])
 
     elif tool_to_run == "set":
         if len(sys.argv) == 4:
