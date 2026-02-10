@@ -12,10 +12,8 @@ from typing import Dict, List, Iterator
 
 class QlikScript:
     def __init__(self):
-        # self.base_url = "https://climber-se.eu.qlikcloud.com/api/v1"
-        # self.api_key = os.getenv("_QLIK_API_CLIMBER_")
-        self.api_key = os.getenv("_QLIK_API_COPIAX_")
-        self.base_url = "https://copiax.eu.qlikcloud.com/api/v1"
+        self.base_url = os.getenv("_QLIK_TENANT_URL")
+        self.api_key = os.getenv("_QLIK_API_KEY")
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -481,7 +479,7 @@ class QlikScript:
         return response.json() 
     
     def get_space_by_name(self, space_name: str) -> Dict:
-        
+         
         url = f"{self.base_url}/spaces?type=shared&limit=100"
         response = requests.get(url, headers=self.headers)
         
