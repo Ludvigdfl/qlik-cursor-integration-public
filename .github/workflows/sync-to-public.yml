@@ -18,6 +18,8 @@ jobs:
         env:
           PAT: ${{ secrets.QLIK_CURSOR_INTEGRATION_PUBLIC_PAT }}
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git config --global url."https://x-access-token:${PAT}@github.com/".insteadOf "https://github.com/"
           git remote add public https://github.com/Ludvigdfl/qlik-cursor-integration-public.git
 
