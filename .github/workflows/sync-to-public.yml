@@ -1,0 +1,19 @@
+name: Sync to public repo
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to public repo
+        run: |
+          git remote add public https://x-access-token:${{ secrets.QLIK_CURSOR_INTEGRATION_PUBLIC_PAT }}@github.com/Ludvigdfl/qlik-cursor-integration-public.git
+          git push public main --force
