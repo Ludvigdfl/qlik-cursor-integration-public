@@ -39,6 +39,7 @@ cd c:\users\projects\mynewproject
 
 qlik help              # list available commands
 qlik get "MyApp"       # download app script as .qvs files
+qlik get_space "space name" # get all apps in space
 qlik set "MyApp"       # validate & push changes back
 qlik load "MyApp"      # reload the app (streams logs)
 qlik pub "MyApp"       # publish to managed space
