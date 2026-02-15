@@ -53,5 +53,5 @@ Two skills in `.claude/skills/` extend Claude Code with Qlik-aware behaviour:
 | **qlik-cli** | Lets Claude invoke the CLI commands (`get`, `set`, `load`, `pub`, …) on your behalf and manage the full script workflow from within the conversation. |
 | **qlik-conventions** | Enforces Qlik Sense script syntax, formatting, and best practices whenever Claude edits or creates `.qvs` files (aligned `as` columns, correct keywords, proper statement termination). |
 
-The skills activate automatically — no extra configuration is needed.
+Skills are **not** globally installed. To use them, copy the `.claude/skills/` folder into your project's `.claude/` directory.
 
