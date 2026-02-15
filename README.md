@@ -37,7 +37,7 @@ Set the following system environment variables:
 ```bash
 cd c:\users\projects\mynewproject
 
-qlik help              # list available commands
+qlik help              # list available commands 1
 qlik get "MyApp"       # download app script as .qvs files
 qlik get_space "space name" # get all apps in space
 qlik set "MyApp"       # validate & push changes back
