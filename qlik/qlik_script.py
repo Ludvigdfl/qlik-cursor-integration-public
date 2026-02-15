@@ -12,8 +12,16 @@ from typing import Dict, List, Iterator
 
 class QlikScript:
     def __init__(self):
-        self.base_url = os.getenv("_QLIK_TENANT_URL")
-        self.api_key = os.getenv("_QLIK_API_KEY")
+        self.base_url = os.getenv("_QLIK_TENANT_URL_")
+        self.api_key = os.getenv("_QLIK_API_KEY_")
+
+        if not self.base_url:
+            print("ERROR: _QLIK_TENANT_URL_ is not set or empty. Set it as an environment variable.")
+            sys.exit(1)
+        if not self.api_key:
+            print("ERROR: _QLIK_API_KEY_ is not set or empty. Set it as an environment variable.")
+            sys.exit(1)
+
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -21,19 +29,29 @@ class QlikScript:
        
     
  
+    def _get_all_paginated(self, url: str) -> List[Dict]:
+        """Fetch all pages of data from a paginated Qlik API endpoint.
+
+        Follows links.next.href until all pages are retrieved.
+        """
+        all_data = []
+        while url:
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            body = response.json()
+            all_data.extend(body.get("data", []))
+            url = body.get("links", {}).get("next", {}).get("href", None)
+        return all_data
+
     def get_app_by_name(self, app_name: str, app_id: str = None) -> Dict:
         """Get app info (appName) by app_name."""
         
         url = f"{self.base_url}/items?resourceType=app&spaceType=shared&name={app_name}"
-        
+
         if app_id:
             url = f"{self.base_url}/items?resourceType=app&spaceType=shared&name={app_name}&resourceId={app_id}"
-        
-        # Fetch all pages of data
-        response = requests.get(url, headers=self.headers)
-      
-        response = response.json()
-        response_data = response.get("data", [])
+
+        response_data = self._get_all_paginated(url)
         
         if not response_data:
             raise ValueError(f"No app found with name {app_name}")
@@ -436,17 +454,12 @@ class QlikScript:
         app_info = self.get_app_by_name(app_name, app_id)
         # Get unique ItemID for the app (AppID and ItemID are not the same)
         url = f"{self.base_url}/items?resourceId={app_info['appId']}&resourceType=app"
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        app_item_id = response.json()["data"][0]["id"]
- 
+        items_data = self._get_all_paginated(url)
+        app_item_id = items_data[0]["id"]
+
         # Get unique AppID for the published version of the app
         url = f"{self.base_url}/items/{app_item_id}/publisheditems"
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        
-        response = response.json()
-        response_data = response.get("data", [])
+        response_data = self._get_all_paginated(url)
         
         if not response_data or "resourceId" not in response_data[0]:
             raise ValueError("Published app not found or invalid response structure. If app has never been published, publish it once from the UI first.")
@@ -479,14 +492,10 @@ class QlikScript:
         return response.json() 
     
     def get_space_by_name(self, space_name: str) -> Dict:
-         
+
         url = f"{self.base_url}/spaces?type=shared&limit=100"
-        response = requests.get(url, headers=self.headers)
-        
-        response.raise_for_status()
-        response = response.json()
-        response_data = response.get("data", [])
-        
+        response_data = self._get_all_paginated(url)
+
         for space in response_data:
             if str(space["name"]).lower() == space_name.lower():
                 return space
@@ -497,8 +506,5 @@ class QlikScript:
 
         print(f"Getting apps in space: {space_name}")
         url = f"{self.base_url}/items?resourceType=app&spaceType=shared&spaceId={space_id}&limit=100"
-        
-        response = requests.get(url, headers=self.headers)
-        response = response.json()
-        response_data = response.get("data", [])
-        return response_data
+
+        return self._get_all_paginated(url)
