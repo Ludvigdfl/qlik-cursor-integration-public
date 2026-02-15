@@ -20,24 +20,38 @@ Install VSCode Icons Theme (`vscode-icons-team.vscode-icons`) and activate it to
 * Expose the `qlik` command by adding the absolute path for the `qlik.cmd` to your system environment variables - `C:\Users\<YOU>\AppData\Local\Programs\Qlik_DEV\qlik`
 * This will expose `qlik.cmd` during runtime.
 
-### 4. Set API Key
+### 4. Set Environment Variables
 
-1. Generate an API key from your Qlik Cloud tenant
-2. Set it as an environment variable:
-   - Variable name: `_QLIK_API_KEY_`
-   - Variable value: Your API key
+Set the following system environment variables:
+
+| Variable | Value |
+|----------|-------|
+| `_QLIK_API_KEY_` | API key generated from your Qlik Cloud tenant |
+| `_QLIK_TENANT_URL_` | Your tenant URL (e.g. `https://tenant.us.qlikcloud.com`) |
 
 
-## Examples
-⚠️ Important - Run the commands below in a separate folder - i.e. not within the root of cli files (`C:\Users\<YOU>\AppData\Local\Programs`).
-- Navigate to a new project directory:
-- Run in terminal:
+### 5. Usage
 
-```bash
-c:\users\projects\mynewproject
-```
+> **Important:** Always run `qlik` from your **project folder**, not from the CLI install directory.
 
 ```bash
-c:\users\projects\mynewproject> qlik help
+cd c:\users\projects\mynewproject
+
+qlik help              # list available commands
+qlik get "MyApp"       # download app script as .qvs files
+qlik set "MyApp"       # validate & push changes back
+qlik load "MyApp"      # reload the app (streams logs)
+qlik pub "MyApp"       # publish to managed space
 ```
+
+### 6. Claude Code Skills
+
+Two skills in `.claude/skills/` extend Claude Code with Qlik-aware behaviour:
+
+| Skill | Purpose |
+|-------|---------|
+| **qlik-cli** | Lets Claude invoke the CLI commands (`get`, `set`, `load`, `pub`, …) on your behalf and manage the full script workflow from within the conversation. |
+| **qlik-conventions** | Enforces Qlik Sense script syntax, formatting, and best practices whenever Claude edits or creates `.qvs` files (aligned `as` columns, correct keywords, proper statement termination). |
+
+The skills activate automatically — no extra configuration is needed.
 
