@@ -14,6 +14,9 @@ jobs:
           fetch-depth: 0
 
       - name: Push to public repo
+        env:
+          PAT: ${{ secrets.QLIK_CURSOR_INTEGRATION_PUBLIC_PAT }}
         run: |
-          git remote add public https://x-access-token:${{ secrets.QLIK_CURSOR_INTEGRATION_PUBLIC_PAT }}@github.com/Ludvigdfl/qlik-cursor-integration-public.git
+          git config --global url."https://x-access-token:${PAT}@github.com/".insteadOf "https://github.com/"
+          git remote add public https://github.com/Ludvigdfl/qlik-cursor-integration-public.git
           git push public main --force
