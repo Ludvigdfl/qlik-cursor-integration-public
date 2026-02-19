@@ -20,7 +20,7 @@ Values take effect immediately for all subsequent commands. As a fallback, the C
 
 ## Commands
 
-Invoke via Bash: `PYTHONIOENCODING=utf-8 qlik/qlik.cmd <command> <args>`
+Invoke via Bash: `PYTHONIOENCODING=utf-8 "$HOME/AppData/Local/Programs/Qlik_DEV/qlik/qlik.cmd" <command> <args>`
 
 | Command | Usage | Description |
 |---------|-------|-------------|
