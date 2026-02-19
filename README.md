@@ -2,7 +2,7 @@
 
 ## Set-up
 
-### 1. Add to Environment Variables
+### 1. Expose 'qlik' as a cli
 
 * Put the root of the folder in a logical place - like  `C:\Users\<YOU>\AppData\Local\Programs\<ROOT>`
 * Expose the `qlik` command by adding the absolute path for the `qlik.cmd` to your system environment variables - `C:\Users\<YOU>\AppData\Local\Programs\Qlik_DEV\qlik`
@@ -16,17 +16,15 @@ qlik set_tenant_api_key <your-api-key>
 qlik get_tenant   # get current tenant URL and API key
 ```
 
-Changes take effect immediately — no terminal restart needed.
-
-
 ### 3. Usage
 
-> **Important:** Always run `qlik` from your **project folder**, not from the CLI install directory.
+> **Important:** Always run `qlik` from your **project folder**, not from the CLI install directory from step 1.
 
 ```bash
 cd c:\users\projects\mynewproject
 
 qlik help                        # list available commands
+
 qlik get "MyApp"                 # download app script as .qvs files
 qlik get_space "space name"      # get all apps in space
 qlik set "MyApp"                 # validate & push changes back
