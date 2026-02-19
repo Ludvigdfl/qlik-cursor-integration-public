@@ -1,4 +1,4 @@
-# Basic CLI for Qlik Cloud
+# Elemnetary script cli for Qlik Cloud
 
 ## Set-up
 
