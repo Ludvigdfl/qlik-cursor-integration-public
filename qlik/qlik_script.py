@@ -21,15 +21,17 @@ class QlikScript:
 
     def __init__(self):
         config = self._load_config()
-        self.base_url = config.get("_QLIK_TENANT_URL_") or os.getenv("_QLIK_TENANT_URL_")
-        self.api_key  = config.get("_QLIK_API_KEY_")    or os.getenv("_QLIK_API_KEY_")
+        tenant_url = config.get("_QLIK_TENANT_URL_")
+        self.api_key = config.get("_QLIK_API_KEY_")
 
-        if not self.base_url:
+        if not tenant_url:
             print("ERROR: _QLIK_TENANT_URL_ is not set. Run: qlik set_tenant <url>")
             sys.exit(1)
         if not self.api_key:
             print("ERROR: _QLIK_API_KEY_ is not set. Run: qlik set_tenant_api_key <key>")
             sys.exit(1)
+
+        self.base_url = tenant_url.rstrip("/") + "/api/v1"
 
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
