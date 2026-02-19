@@ -13,7 +13,7 @@ from typing import Dict, List, Iterator
 class QlikScript:
     @staticmethod
     def _load_config() -> dict:
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".qlik_config.json")
+        config_path = os.path.join(os.getcwd(), ".qlik_config.json")
         if os.path.exists(config_path):
             with open(config_path, "r") as f:
                 return json.load(f)
@@ -31,7 +31,10 @@ class QlikScript:
             print("ERROR: _QLIK_API_KEY_ is not set. Run: qlik set_tenant_api_key <key>")
             sys.exit(1)
 
-        self.base_url = tenant_url.rstrip("/") + "/api/v1"
+        tenant_url = tenant_url.rstrip("/")
+        if tenant_url.endswith("/api/v1"):
+            tenant_url = tenant_url[:-len("/api/v1")]
+        self.base_url = tenant_url + "/api/v1"
 
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
