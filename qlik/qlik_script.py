@@ -13,7 +13,7 @@ from typing import Dict, List, Iterator
 class QlikScript:
     @staticmethod
     def _load_config() -> dict:
-        config_path = os.path.join(os.getcwd(), ".qlik_config.json")
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".qlik_config.json")
         if os.path.exists(config_path):
             with open(config_path, "r") as f:
                 return json.load(f)

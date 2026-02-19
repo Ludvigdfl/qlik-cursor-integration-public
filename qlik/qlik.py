@@ -97,7 +97,7 @@ def load(App_Name:str, App_Id:str = None):
 
 
 def _config_path() -> str:
-    return os.path.join(os.getcwd(), ".qlik_config.json")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), ".qlik_config.json")
 
 
 def _read_config() -> dict:
