@@ -9,9 +9,14 @@ Custom CLI at `qlik/qlik.cmd` for managing Qlik Sense Cloud apps via the REST AP
 
 ## Prerequisites
 
-Two environment variables must be set:
-- `_QLIK_TENANT_URL_` - Qlik Cloud tenant URL (e.g. `https://tenant.us.qlikcloud.com`)
-- `_QLIK_API_KEY_` - API key for Bearer token auth
+Tenant URL and API key are stored in `qlik/.qlik_config.json` (gitignored). Configure them once with:
+
+```
+qlik set_tenant <tenant_url>
+qlik set_tenant_api_key <api_key>
+```
+
+Values take effect immediately for all subsequent commands. As a fallback, the CLI also reads `_QLIK_TENANT_URL_` and `_QLIK_API_KEY_` environment variables if the config file is absent.
 
 ## Commands
 
@@ -25,6 +30,9 @@ Invoke via Bash: `PYTHONIOENCODING=utf-8 qlik/qlik.cmd <command> <args>`
 | `load` | `qlik load <app_name> [<app_id>]` | Trigger app reload with live log streaming |
 | `pub` | `qlik pub <app_name> [<app_id>]` | Publish shared space app to its managed space copy |
 | `rem` | `qlik rem <app_name> [<app_id>]` | Delete local script directory for the app |
+| `set_tenant` | `qlik set_tenant <url>` | Save tenant URL to config file |
+| `set_tenant_api_key` | `qlik set_tenant_api_key <key>` | Save API key to config file |
+| `check_tenant` | `qlik check_tenant` | Print current tenant URL and API key |
 | `help` | `qlik help` | List available commands |
 
 The optional `<app_id>` disambiguates when multiple apps share the same name.

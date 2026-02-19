@@ -11,15 +11,24 @@ from typing import Dict, List, Iterator
 
 
 class QlikScript:
+    @staticmethod
+    def _load_config() -> dict:
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".qlik_config.json")
+        if os.path.exists(config_path):
+            with open(config_path, "r") as f:
+                return json.load(f)
+        return {}
+
     def __init__(self):
-        self.base_url = os.getenv("_QLIK_TENANT_URL_")
-        self.api_key = os.getenv("_QLIK_API_KEY_")
+        config = self._load_config()
+        self.base_url = config.get("_QLIK_TENANT_URL_") or os.getenv("_QLIK_TENANT_URL_")
+        self.api_key  = config.get("_QLIK_API_KEY_")    or os.getenv("_QLIK_API_KEY_")
 
         if not self.base_url:
-            print("ERROR: _QLIK_TENANT_URL_ is not set or empty. Set it as an environment variable.")
+            print("ERROR: _QLIK_TENANT_URL_ is not set. Run: qlik set_tenant <url>")
             sys.exit(1)
         if not self.api_key:
-            print("ERROR: _QLIK_API_KEY_ is not set or empty. Set it as an environment variable.")
+            print("ERROR: _QLIK_API_KEY_ is not set. Run: qlik set_tenant_api_key <key>")
             sys.exit(1)
 
         self.headers = {

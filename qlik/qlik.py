@@ -1,6 +1,8 @@
 import sys
+import os
+import json
 import time
-from qlik_script import QlikScript 
+from qlik_script import QlikScript
 
 def get(App_Name:str, App_Id:str = None):
     """Get script from Qlik app, parse tabs, and save to files."""
@@ -94,14 +96,57 @@ def load(App_Name:str, App_Id:str = None):
 
 
 
+def _config_path() -> str:
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), ".qlik_config.json")
+
+
+def _read_config() -> dict:
+    path = _config_path()
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def _write_config(key: str, value: str):
+    config = _read_config()
+    config[key] = value
+    with open(_config_path(), "w") as f:
+        json.dump(config, f, indent=2)
+
+
+def set_tenant(tenant_url: str):
+    """Set the Qlik tenant URL."""
+    _write_config("_QLIK_TENANT_URL_", tenant_url)
+    print(f"_QLIK_TENANT_URL_ set to: {tenant_url}")
+
+
+def set_tenant_api_key(api_key: str):
+    """Set the Qlik API key."""
+    _write_config("_QLIK_API_KEY_", api_key)
+    print("_QLIK_API_KEY_ set successfully")
+
+
+def check_tenant():
+    """Print the configured tenant URL and API key."""
+    config = _read_config()
+    tenant_url = config.get("_QLIK_TENANT_URL_") or os.getenv("_QLIK_TENANT_URL_", "(not set)")
+    api_key    = config.get("_QLIK_API_KEY_")    or os.getenv("_QLIK_API_KEY_",    "(not set)")
+    print(f"Tenant URL: {tenant_url}")
+    print(f"API Key:    {api_key}")
+
+
 def help():
     print("Available commands:")
-    print("🟢 qlik get       <app_name>  [<app_id>]: Get script from the Qlik shared space app")
-    print("🟢 qlik get_space <space_name>:           Get script from all apps in shared space")
-    print("🟢 qlik set       <app_name>  [<app_id>]: Set script for the Qlik shared space app")
-    print("🟢 qlik load      <app_name>  [<app_id>]: Reload the Qlik shared space app")
-    print("🟢 qlik pub       <app_name>  [<app_id>]: Publish the Qlik shared space app to the Qlik managed space app")
-    print("🟢 qlik rem       <app_name>  [<app_id>]: Empty the local script directory for app")
+    print("🟢 qlik get                <app_name>  [<app_id>]: Get script from the Qlik shared space app")
+    print("🟢 qlik get_space          <space_name>:           Get script from all apps in shared space")
+    print("🟢 qlik set                <app_name>  [<app_id>]: Set script for the Qlik shared space app")
+    print("🟢 qlik load               <app_name>  [<app_id>]: Reload the Qlik shared space app")
+    print("🟢 qlik pub                <app_name>  [<app_id>]: Publish the Qlik shared space app to the Qlik managed space app")
+    print("🟢 qlik rem                <app_name>  [<app_id>]: Empty the local script directory for app")
+    print("🟢 qlik set_tenant         <tenant_url>:           Set the Qlik tenant URL (persists across terminals)")
+    print("🟢 qlik set_tenant_api_key <api_key>:              Set the Qlik API key (persists across terminals)")
+    print("🟢 qlik check_tenant:                              Print the configured tenant URL and API key")
 
 
 commands = {
@@ -111,6 +156,9 @@ commands = {
     "rem": rem,
     "load": load,
     "pub": pub,
+    "set_tenant": set_tenant,
+    "set_tenant_api_key": set_tenant_api_key,
+    "check_tenant": check_tenant,
     "help": help,
 }
 
@@ -163,6 +211,15 @@ try:
         else:
             rem(sys.argv[2])
         
+    elif tool_to_run == "set_tenant":
+        set_tenant(sys.argv[2])
+
+    elif tool_to_run == "set_tenant_api_key":
+        set_tenant_api_key(sys.argv[2])
+
+    elif tool_to_run == "check_tenant":
+        check_tenant()
+
     elif tool_to_run == "help":
         help()
 

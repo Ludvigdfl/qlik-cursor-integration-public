@@ -1,5 +1,6 @@
 /scripts
 /venv
+qlik/.qlik_config.json
 /static/qlik/__pycache__/
 /*.pyc
 *.pyo
