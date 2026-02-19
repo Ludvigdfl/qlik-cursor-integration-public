@@ -1,4 +1,4 @@
-# Qlik Script CLI
+# Qlik Script cli   
 
 ## Set-up
 
