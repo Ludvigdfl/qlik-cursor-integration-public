@@ -11,7 +11,7 @@
 ### 2. Connect to a Qlik Cloud Tenant
 
 ```bash
-qlik set_tenant https://tenant.us.qlikcloud.com
+qlik set_tenant https://{tenant}.{region}.qlikcloud.com
 qlik set_tenant_api_key <your-api-key>
 qlik get_tenant   # get current tenant URL and API key
 ```
@@ -34,7 +34,7 @@ qlik rem "MyApp"                 # delete local script directory
 
 qlik set_tenant <url>            # set Qlik tenant URL
 qlik set_tenant_api_key <key>    # set Qlik API key
-qlik get_tenant                # show current tenant URL and API key
+qlik get_tenant                  # show current tenant URL and API key
 ```
 
 ### 4. Claude Code Skills

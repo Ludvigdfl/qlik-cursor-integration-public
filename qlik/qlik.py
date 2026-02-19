@@ -146,9 +146,9 @@ def help():
     print("🟢 qlik load               <app_name>  [<app_id>]: Reload the Qlik shared space app")
     print("🟢 qlik pub                <app_name>  [<app_id>]: Publish the Qlik shared space app to the Qlik managed space app")
     print("🟢 qlik rem                <app_name>  [<app_id>]: Empty the local script directory for app")
-    print("🟢 qlik set_tenant         <tenant_url>:           Set the Qlik tenant URL (persists across terminals)")
-    print("🟢 qlik set_tenant_api_key <api_key>:              Set the Qlik API key (persists across terminals)")
-    print("🟢 qlik get_tenant:                              Get the current tenant URL and API key")
+    print("🟢 qlik set_tenant         <tenant_url>:           Set the Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
+    print("🟢 qlik set_tenant_api_key <api_key>:              Set the Qlik API key")
+    print("🟢 qlik get_tenant:                                Get the current tenant URL and API key")
 
 
 commands = {
