@@ -97,7 +97,7 @@ def load(App_Name:str, App_Id:str = None):
 
 
 def _config_path() -> str:
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), ".qlik_config.json")
+    return os.path.join(os.getcwd(), ".qlik_config.json")
 
 
 def _read_config() -> dict:
@@ -109,9 +109,11 @@ def _read_config() -> dict:
 
 
 def _write_config(key: str, value: str):
+    path = _config_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     config = _read_config()
     config[key] = value
-    with open(_config_path(), "w") as f:
+    with open(path, "w") as f:
         json.dump(config, f, indent=2)
 
 
@@ -127,8 +129,8 @@ def set_tenant_api_key(api_key: str):
     print("_QLIK_API_KEY_ set successfully")
 
 
-def check_tenant():
-    """Print the configured tenant URL and API key."""
+def get_tenant():
+    """Get the current tenant URL and API key."""
     config = _read_config()
     tenant_url = config.get("_QLIK_TENANT_URL_") or os.getenv("_QLIK_TENANT_URL_", "(not set)")
     api_key    = config.get("_QLIK_API_KEY_")    or os.getenv("_QLIK_API_KEY_",    "(not set)")
@@ -146,7 +148,7 @@ def help():
     print("🟢 qlik rem                <app_name>  [<app_id>]: Empty the local script directory for app")
     print("🟢 qlik set_tenant         <tenant_url>:           Set the Qlik tenant URL (persists across terminals)")
     print("🟢 qlik set_tenant_api_key <api_key>:              Set the Qlik API key (persists across terminals)")
-    print("🟢 qlik check_tenant:                              Print the configured tenant URL and API key")
+    print("🟢 qlik get_tenant:                              Get the current tenant URL and API key")
 
 
 commands = {
@@ -158,7 +160,7 @@ commands = {
     "pub": pub,
     "set_tenant": set_tenant,
     "set_tenant_api_key": set_tenant_api_key,
-    "check_tenant": check_tenant,
+    "get_tenant": get_tenant,
     "help": help,
 }
 
@@ -217,8 +219,8 @@ try:
     elif tool_to_run == "set_tenant_api_key":
         set_tenant_api_key(sys.argv[2])
 
-    elif tool_to_run == "check_tenant":
-        check_tenant()
+    elif tool_to_run == "get_tenant":
+        get_tenant()
 
     elif tool_to_run == "help":
         help()

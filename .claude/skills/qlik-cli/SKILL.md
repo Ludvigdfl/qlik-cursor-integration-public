@@ -9,7 +9,7 @@ Custom CLI at `qlik/qlik.cmd` for managing Qlik Sense Cloud apps via the REST AP
 
 ## Prerequisites
 
-Tenant URL and API key are stored in `qlik/.qlik_config.json` (gitignored). Configure them once with:
+Tenant URL and API key are stored in `.qlik_config.json` in the project root (gitignored). Configure them once with:
 
 ```
 qlik set_tenant <tenant_url>
@@ -32,7 +32,7 @@ Invoke via Bash: `PYTHONIOENCODING=utf-8 qlik/qlik.cmd <command> <args>`
 | `rem` | `qlik rem <app_name> [<app_id>]` | Delete local script directory for the app |
 | `set_tenant` | `qlik set_tenant <url>` | Save tenant URL to config file |
 | `set_tenant_api_key` | `qlik set_tenant_api_key <key>` | Save API key to config file |
-| `check_tenant` | `qlik check_tenant` | Print current tenant URL and API key |
+| `get_tenant` | `qlik get_tenant` | Get current tenant URL and API key |
 | `help` | `qlik help` | List available commands |
 
 The optional `<app_id>` disambiguates when multiple apps share the same name.
