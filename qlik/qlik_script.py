@@ -167,27 +167,28 @@ class QlikScript:
             return {"Main": script.strip()}
         
         tabs = {}
-        
-        # Extract first tab (before first marker)
+        global_index = 0
+
+        # Extract content before the first marker (if any)
         first_tab_content = script[:matches[0].start()].strip()
         if first_tab_content:
-            tabs["Main"] = first_tab_content
-        
-        # Extract each tab
+            tabs[f"{global_index}___Main"] = first_tab_content
+            global_index += 1
+
+        # Extract each named tab
         for i, match in enumerate(matches):
-            tab_name = match.group(1)
-            tab_name = f"{i}___{tab_name}"  # Name with i.__ to keep order of tabs
+            tab_name = match.group(1).strip()
+            key = f"{global_index}___{tab_name}"
             start_pos = match.end()
-            
-            # Find the end position (start of next tab or end of script)
+
             if i + 1 < len(matches):
                 end_pos = matches[i + 1].start()
             else:
                 end_pos = len(script)
-            
-            tab_content = script[start_pos:end_pos].strip()
-            tabs[tab_name] = tab_content
-        
+
+            tabs[key] = script[start_pos:end_pos].strip()
+            global_index += 1
+
         return tabs
 
 
@@ -316,7 +317,15 @@ class QlikScript:
         if not qvs_files:
             raise ValueError(f"No .qvs files found in {script_dir}")
         
-        ordered_files = sorted(qvs_files, key=lambda x: x.stem[:3] if len(x.stem) >= 3 else x.stem, reverse=False)
+        def _tab_index(stem: str) -> int:
+            if '___' in stem:
+                try:
+                    return int(stem.split('___')[0])
+                except ValueError:
+                    pass
+            return -1  # 'Main' and unrecognised files sort first
+
+        ordered_files = sorted(qvs_files, key=lambda x: _tab_index(x.stem))
         
         combined_parts = []
         for qvs_file in ordered_files:
