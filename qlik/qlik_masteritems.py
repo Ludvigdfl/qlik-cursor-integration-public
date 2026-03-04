@@ -2,6 +2,7 @@ from qlik_sdk import AuthType, Config, Qlik
 import json
 import os
 import sys
+import requests
 from pathlib import Path
 
 class Qlik_Masteritems:
@@ -374,6 +375,41 @@ class Qlik_Masteritems:
         self.save_dir.mkdir(parents=True, exist_ok=True)
         with open(self.save_dir / "measures.json", "w", encoding="utf-8") as f:
             json.dump(measures_list, f, indent=4)
+
+    def publish_app(self) -> None:
+        """Publish the shared space app to its managed space counterpart."""
+        base_url = self.tenant_host.rstrip("/") + "/api/v1"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        # Resolve the item ID for the shared app
+        url = f"{base_url}/items?resourceId={self.app_id}&resourceType=app"
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        items = response.json().get("data", [])
+        if not items:
+            raise ValueError(f"No item found for app {self.app_id}")
+        app_item_id = items[0]["id"]
+
+        # Resolve the published (managed) app ID
+        url = f"{base_url}/items/{app_item_id}/publisheditems"
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        published = response.json().get("data", [])
+        if not published or "resourceId" not in published[0]:
+            raise ValueError(
+                "Published app not found. If this app has never been published, publish it once from the UI first."
+            )
+        target_id = published[0]["resourceId"]
+
+        # Publish shared → managed
+        url = f"{base_url}/apps/{self.app_id}/publish"
+        response = requests.put(url, headers=headers, json={"targetId": target_id})
+        response.raise_for_status()
+        name = response.json().get("attributes", {}).get("name", self.app_id)
+        print(f"✅ '{name}' published successfully")
 
     def get_dimensions(self) -> list[dict]:
         """Returns a list of all master dimensions in the app."""

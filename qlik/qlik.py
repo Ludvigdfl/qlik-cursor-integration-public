@@ -6,6 +6,36 @@ from pathlib import Path
 from qlik_script import QlikScript
 from qlik_masteritems import Qlik_Masteritems
 
+
+def _config_path() -> str:
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), ".qlik_config.json")
+
+
+def _read_config() -> dict:
+    path = _config_path()
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def _write_config(key: str, value: str):
+    path = _config_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    config = _read_config()
+    config[key] = value
+    with open(path, "w") as f:
+        json.dump(config, f, indent=2)
+
+def _masteritems_dir(App_Name: str, App_Id: str = None) -> tuple:
+    """Resolve app info and return the masteritems save_dir path."""
+    Qlik = QlikScript()
+    app_info = Qlik.get_app_by_name(App_Name, App_Id)
+    save_dir = QlikScript._get_project_root() / "Apps" / app_info["appId"] / app_info["sanitizedAppName"] / "masteritems"
+    return app_info["appId"], save_dir
+
+
+
 def get(App_Name:str, App_Id:str = None):
     """Get script from Qlik app, parse tabs, and save to files."""
     Qlik = QlikScript()
@@ -55,15 +85,6 @@ def pub(App_Name:str, App_Id:str = None):
     Qlik = QlikScript()
     Qlik.publish_app(App_Name, App_Id)
 
-
-def _masteritems_dir(App_Name: str, App_Id: str = None) -> tuple:
-    """Resolve app info and return the masteritems save_dir path."""
-    Qlik = QlikScript()
-    app_info = Qlik.get_app_by_name(App_Name, App_Id)
-    save_dir = QlikScript._get_project_root() / "Apps" / app_info["appId"] / app_info["sanitizedAppName"] / "masteritems"
-    return app_info["appId"], save_dir
-
-
 def get_ms(App_Name: str, App_Id: str = None):
     """Get master measures from Qlik app and save to Apps/{appId}/{appName}/masteritems/measures.json."""
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
@@ -93,6 +114,14 @@ def set_dim(App_Name: str, App_Id: str = None):
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
     Qlik.create_dimensions()
+    Qlik.close()
+
+
+def pub_items(App_Name: str, App_Id: str = None):
+    """Publish shared space app to managed space app (e.g. after updating master items)."""
+    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
+    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    Qlik.publish_app()
     Qlik.close()
 
 
@@ -137,28 +166,6 @@ def load(App_Name:str, App_Id:str = None):
         print("You can check the status later using: Qlik.get_reload_log(reload_id)")
 
 
-
-def _config_path() -> str:
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), ".qlik_config.json")
-
-
-def _read_config() -> dict:
-    path = _config_path()
-    if os.path.exists(path):
-        with open(path, "r") as f:
-            return json.load(f)
-    return {}
-
-
-def _write_config(key: str, value: str):
-    path = _config_path()
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    config = _read_config()
-    config[key] = value
-    with open(path, "w") as f:
-        json.dump(config, f, indent=2)
-
-
 def set_tenant(tenant_url: str):
     """Set the Qlik tenant URL."""
     _write_config("_QLIK_TENANT_URL_", tenant_url)
@@ -193,6 +200,7 @@ def help():
     print("🟢 qlik set_ms               <app_name>  [<app_id>]: Set all master measures in app from measures.json, optionally provide the app_id if multiple apps share the same name")
     print("🟢 qlik get_dim              <app_name>  [<app_id>]: Get all master dimensions from app and save to dimensions.json, optionally provide the app_id if multiple apps share the same name")
     print("🟢 qlik set_dim              <app_name>  [<app_id>]: Set all master dimensions in app from dimensions.json, optionally provide the app_id if multiple apps share the same name")
+    print("🟢 qlik pub_items            <app_name>  [<app_id>]: Publish shared space app to managed space app (use after updating master items)")
     print("")
     print("🟢 qlik set_tenant           <tenant_url>:           Set the Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
     print("🟢 qlik set_tenant_api_key   <api_key>:              Set the Qlik API key")
@@ -210,6 +218,7 @@ commands = {
     "set_ms": set_ms,
     "get_dim": get_dim,
     "set_dim": set_dim,
+    "pub_items": pub_items,
     "set_tenant": set_tenant,
     "set_tenant_api_key": set_tenant_api_key,
     "get_tenant": get_tenant,
@@ -287,6 +296,12 @@ try:
             set_dim(sys.argv[2], sys.argv[3])
         else:
             set_dim(sys.argv[2])
+
+    elif tool_to_run == "pub_items":
+        if len(sys.argv) == 4:
+            pub_items(sys.argv[2], sys.argv[3])
+        else:
+            pub_items(sys.argv[2])
 
     elif tool_to_run == "set_tenant":
         set_tenant(sys.argv[2])
