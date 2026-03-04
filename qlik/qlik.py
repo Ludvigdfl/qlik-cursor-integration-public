@@ -2,7 +2,9 @@ import sys
 import os
 import json
 import time
+from pathlib import Path
 from qlik_script import QlikScript
+from qlik_masteritems import Qlik_Masteritems
 
 def get(App_Name:str, App_Id:str = None):
     """Get script from Qlik app, parse tabs, and save to files."""
@@ -52,6 +54,46 @@ def pub(App_Name:str, App_Id:str = None):
     """Publish app in Shared Space to Managed Space."""
     Qlik = QlikScript()
     Qlik.publish_app(App_Name, App_Id)
+
+
+def _masteritems_dir(App_Name: str, App_Id: str = None) -> tuple:
+    """Resolve app info and return the masteritems save_dir path."""
+    Qlik = QlikScript()
+    app_info = Qlik.get_app_by_name(App_Name, App_Id)
+    save_dir = QlikScript._get_project_root() / "Apps" / app_info["appId"] / app_info["sanitizedAppName"] / "masteritems"
+    return app_info["appId"], save_dir
+
+
+def get_ms(App_Name: str, App_Id: str = None):
+    """Get master measures from Qlik app and save to Apps/{appId}/{appName}/masteritems/measures.json."""
+    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
+    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    Qlik.get_measures()
+    Qlik.close()
+
+
+def set_ms(App_Name: str, App_Id: str = None):
+    """Set master measures in Qlik app from Apps/{appId}/{appName}/masteritems/measures.json."""
+    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
+    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    Qlik.create_measures()
+    Qlik.close()
+
+
+def get_dim(App_Name: str, App_Id: str = None):
+    """Get master dimensions from Qlik app and save to Apps/{appId}/{appName}/masteritems/dimensions.json."""
+    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
+    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    Qlik.get_dimensions()
+    Qlik.close()
+
+
+def set_dim(App_Name: str, App_Id: str = None):
+    """Set master dimensions in Qlik app from Apps/{appId}/{appName}/masteritems/dimensions.json."""
+    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
+    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    Qlik.create_dimensions()
+    Qlik.close()
 
 
 def load(App_Name:str, App_Id:str = None):
@@ -140,15 +182,21 @@ def get_tenant():
 
 def help():
     print("Available commands:")
-    print("🟢 qlik get                <app_name>  [<app_id>]: Get script from the Qlik shared space app")
-    print("🟢 qlik get_space          <space_name>:           Get script from all apps in shared space")
-    print("🟢 qlik set                <app_name>  [<app_id>]: Set script for the Qlik shared space app")
-    print("🟢 qlik load               <app_name>  [<app_id>]: Reload the Qlik shared space app")
-    print("🟢 qlik pub                <app_name>  [<app_id>]: Publish the Qlik shared space app to the Qlik managed space app")
-    print("🟢 qlik rem                <app_name>  [<app_id>]: Empty the local script directory for app")
-    print("🟢 qlik set_tenant         <tenant_url>:           Set the Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
-    print("🟢 qlik set_tenant_api_key <api_key>:              Set the Qlik API key")
-    print("🟢 qlik get_tenant:                                Get the current tenant URL and API key")
+    print("🟢 qlik get                  <app_name>  [<app_id>]: Get script from the Qlik shared space app, optionally provide the app_id if multiple apps share the same name")
+    print("🟢 qlik get_space            <space_name>:           Get script from all apps in shared space")
+    print("🟢 qlik set                  <app_name>  [<app_id>]: Set script for the Qlik shared space app, optionally provide the app_id if multiple apps share the same name")
+    print("🟢 qlik load                 <app_name>  [<app_id>]: Reload the Qlik shared space app, optionally provide the app_id if multiple apps share the same name")
+    print("🟢 qlik pub                  <app_name>  [<app_id>]: Publish the Qlik shared space app to the Qlik managed space app, optionally provide the app_id if multiple apps share the same name")
+    print("🟢 qlik rem                  <app_name>  [<app_id>]: Empty the local script directory for app")
+    print("")
+    print("🟢 qlik get_ms               <app_name>  [<app_id>]: Get all master measures from app and save to measures.json, optionally provide the app_id if multiple apps share the same name")
+    print("🟢 qlik set_ms               <app_name>  [<app_id>]: Set all master measures in app from measures.json, optionally provide the app_id if multiple apps share the same name")
+    print("🟢 qlik get_dim              <app_name>  [<app_id>]: Get all master dimensions from app and save to dimensions.json, optionally provide the app_id if multiple apps share the same name")
+    print("🟢 qlik set_dim              <app_name>  [<app_id>]: Set all master dimensions in app from dimensions.json, optionally provide the app_id if multiple apps share the same name")
+    print("")
+    print("🟢 qlik set_tenant           <tenant_url>:           Set the Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
+    print("🟢 qlik set_tenant_api_key   <api_key>:              Set the Qlik API key")
+    print("🟢 qlik get_tenant:                                  Get the current tenant URL and API key")
 
 
 commands = {
@@ -158,6 +206,10 @@ commands = {
     "rem": rem,
     "load": load,
     "pub": pub,
+    "get_ms": get_ms,
+    "set_ms": set_ms,
+    "get_dim": get_dim,
+    "set_dim": set_dim,
     "set_tenant": set_tenant,
     "set_tenant_api_key": set_tenant_api_key,
     "get_tenant": get_tenant,
@@ -170,8 +222,7 @@ try:
     if tool_to_run not in commands.keys():
         raise ValueError(f"Unknown tool: {tool_to_run}. Available: {', '.join(commands.keys())}")
 except IndexError:
-    print("Please provide a function to run.")
-    print(f"Available functions: {', '.join(commands.keys())}")
+    help()
     sys.exit(1)
 except ValueError as e:
     print(e)
@@ -213,6 +264,30 @@ try:
         else:
             rem(sys.argv[2])
         
+    elif tool_to_run == "get_ms":
+        if len(sys.argv) == 4:
+            get_ms(sys.argv[2], sys.argv[3])
+        else:
+            get_ms(sys.argv[2])
+
+    elif tool_to_run == "set_ms":
+        if len(sys.argv) == 4:
+            set_ms(sys.argv[2], sys.argv[3])
+        else:
+            set_ms(sys.argv[2])
+
+    elif tool_to_run == "get_dim":
+        if len(sys.argv) == 4:
+            get_dim(sys.argv[2], sys.argv[3])
+        else:
+            get_dim(sys.argv[2])
+
+    elif tool_to_run == "set_dim":
+        if len(sys.argv) == 4:
+            set_dim(sys.argv[2], sys.argv[3])
+        else:
+            set_dim(sys.argv[2])
+
     elif tool_to_run == "set_tenant":
         set_tenant(sys.argv[2])
 

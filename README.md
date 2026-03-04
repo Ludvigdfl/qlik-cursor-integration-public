@@ -32,12 +32,67 @@ qlik load "MyApp"                # reload the app (streams logs)
 qlik pub "MyApp"                 # publish to managed space
 qlik rem "MyApp"                 # delete local script directory
 
+qlik get_ms "MyApp"              # download master measures → Apps/{id}/{name}/masteritems/measures.json
+qlik set_ms "MyApp"              # create/update master measures from measures.json
+qlik get_dim "MyApp"             # download master dimensions → Apps/{id}/{name}/masteritems/dimensions.json
+qlik set_dim "MyApp"             # create/update master dimensions from dimensions.json
+
 qlik set_tenant <url>            # set Qlik tenant URL
 qlik set_tenant_api_key <key>    # set Qlik API key
 qlik get_tenant                  # show current tenant URL and API key
 ```
 
-### 4. Claude Code Skills
+### 4. Master Items (Measures & Dimensions)
+
+Master items are stored as JSON files alongside the app's script tabs under `Apps/{appId}/{appName}/masteritems/`.
+
+**Typical workflow:**
+
+```bash
+# Pull current master items from the app into local JSON files
+qlik get_ms "MyApp"              # → masteritems/measures.json
+qlik get_dim "MyApp"             # → masteritems/dimensions.json
+
+# Edit measures.json / dimensions.json locally, then push back
+qlik set_ms "MyApp"              # create or update measures in the app
+qlik set_dim "MyApp"             # create or update dimensions in the app
+```
+
+**JSON schema — measures.json**
+
+```json
+[
+  {
+    "id":          "abc123",
+    "title":       "Total Sales",
+    "definition":  "Sum(Sales)",
+    "label":       "='Total Sales'",
+    "description": "Sum of all sales",
+    "fmt":         "#,##0.00",
+    "tags":        ["finance"]
+  }
+]
+```
+
+**JSON schema — dimensions.json**
+
+```json
+[
+  {
+    "id":               "def456",
+    "title":            "Customer",
+    "definition":       "CustomerName",
+    "label":            "Customer",
+    "label_expression": "='Customer'",
+    "description":      "Customer name dimension",
+    "tags":             ["crm"]
+  }
+]
+```
+
+> **Duplicate handling:** if the app contains more than one master item with the same title, `set_ms` / `set_dim` will skip that item and write the conflicting entries to `measures_duplicates.json` / `dimensions_duplicates.json` for manual review.
+
+### 5. Claude Code Skills
 
 Two skills in `.claude/skills/` extend Claude Code with Qlik-aware behaviour:
 
@@ -48,7 +103,7 @@ Two skills in `.claude/skills/` extend Claude Code with Qlik-aware behaviour:
 
 Skills can also be globally installed in `~/.claude/skills/` to be available in any project.
 
-### 5. Install Syntax Highlighting
+### 6. Install Syntax Highlighting
 
 1. Open Cursor
 2. Go to **Extensions** (or press `Ctrl+Shift+X`)
@@ -56,6 +111,6 @@ Skills can also be globally installed in `~/.claude/skills/` to be available in 
 4. Select: `qlik highlight/gimly81.qlik-0.5.0.vsix`
 5. Restart Cursor
 
-### 6. Install Filename Highlighting
+### 7. Install Filename Highlighting
 
 Install VSCode Icons Theme (`vscode-icons-team.vscode-icons`) and activate it to display Qlik Sense icons for `.qvs` files.

@@ -1,6 +1,6 @@
 ---
 name: qlik-cli
-description: Custom CLI for managing Qlik Sense Cloud app scripts, reloads, and publishing. Use when the user asks to get, edit, set, reload, or publish Qlik app scripts, or when working with .qvs files in the scripts/ directory. Triggers on references to Qlik apps, Qlik scripts, reload tasks, or the "qlik" command.
+description: Custom CLI for managing Qlik Sense Cloud app scripts, reloads, and publishing. Use when the user asks to get, edit, set, reload, or publish Qlik app scripts, or when working with .qvs files in the scripts/ directory. Triggers on references to Qlik apps, Qlik scripts, reload tasks, master items (measures/dimensions), or the "qlik" command.
 ---
 
 # Qlik CLI
@@ -30,6 +30,10 @@ Invoke via Bash: `PYTHONIOENCODING=utf-8 "$HOME/AppData/Local/Programs/Qlik_DEV/
 | `load` | `qlik load <app_name> [<app_id>]` | Trigger app reload with live log streaming |
 | `pub` | `qlik pub <app_name> [<app_id>]` | Publish shared space app to its managed space copy |
 | `rem` | `qlik rem <app_name> [<app_id>]` | Delete local script directory for the app |
+| `get_ms` | `qlik get_ms <app_name> [<app_id>]` | Download all master measures → `masteritems/measures.json` |
+| `set_ms` | `qlik set_ms <app_name> [<app_id>]` | Create/update master measures from `measures.json` |
+| `get_dim` | `qlik get_dim <app_name> [<app_id>]` | Download all master dimensions → `masteritems/dimensions.json` |
+| `set_dim` | `qlik set_dim <app_name> [<app_id>]` | Create/update master dimensions from `dimensions.json` |
 | `set_tenant` | `qlik set_tenant <url>` | Save tenant URL to config file |
 | `set_tenant_api_key` | `qlik set_tenant_api_key <key>` | Save API key to config file |
 | `get_tenant` | `qlik get_tenant` | Get current tenant URL and API key |
@@ -39,6 +43,8 @@ The optional `<app_id>` disambiguates when multiple apps share the same name.
 
 ## Typical Workflow
 
+### Script
+
 ```
 qlik get "MyApp"          # 1. Download script tabs as .qvs files
 # ... edit .qvs files ... # 2. Make changes locally
@@ -47,18 +53,46 @@ qlik load "MyApp"         # 4. Reload the app (streams logs)
 qlik pub "MyApp"          # 5. Publish to managed space
 ```
 
-## Local File Structure
-
-Scripts are stored relative to the current working directory:
+### Master Items
 
 ```
-scripts/
-  {SanitizedAppName}/
-    {appId}/
-      Main.qvs              # First tab (if content before first marker)
-      0___TabName1.qvs       # Tabs prefixed with index for ordering
-      1___TabName2.qvs
-      2___TabName3.qvs
+qlik get_ms "MyApp"       # 1. Download master measures → masteritems/measures.json
+qlik get_dim "MyApp"      # 1. Download master dimensions → masteritems/dimensions.json
+# ... edit JSON files ... # 2. Add/modify entries locally
+qlik set_ms "MyApp"       # 3. Create/update measures in the app
+qlik set_dim "MyApp"      # 3. Create/update dimensions in the app
+```
+
+`set_ms` / `set_dim` match items by `id` first, then by `title`. If more than one item in the app shares the same title, the item is skipped and written to `measures_duplicates.json` / `dimensions_duplicates.json` for manual review.
+
+## Local File Structure
+
+Files are stored relative to the current working directory:
+
+```
+Apps/
+  {appId}/
+    {SanitizedAppName}/
+      scripts/
+        Main.qvs              # First tab (if content before first marker)
+        0___TabName1.qvs      # Tabs prefixed with index for ordering
+        1___TabName2.qvs
+        2___TabName3.qvs
+      masteritems/
+        measures.json         # Master measures (get_ms / set_ms)
+        dimensions.json       # Master dimensions (get_dim / set_dim)
+        measures_duplicates.json    # Written when duplicate measures are found
+        dimensions_duplicates.json  # Written when duplicate dimensions are found
+```
+
+**measures.json schema:**
+```json
+[{ "id": "abc123", "title": "Total Sales", "definition": "Sum(Sales)", "label": "='Total Sales'", "description": "", "fmt": "#,##0.00", "tags": [] }]
+```
+
+**dimensions.json schema:**
+```json
+[{ "id": "def456", "title": "Customer", "definition": "CustomerName", "label": "Customer", "label_expression": "='Customer'", "description": "", "tags": [] }]
 ```
 
 ### File Conventions

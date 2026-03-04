@@ -105,16 +105,10 @@ class QlikScript:
     def empty_script_directory(self, app_name: str, app_id: str = None):
         app_info = self.get_app_by_name(app_name, app_id)
         project_root = self._get_project_root()
-        scripts_dir = project_root / "scripts" / app_info["sanitizedAppName"]
-        app_dir = project_root / "scripts" / app_info["sanitizedAppName"]
-        
-        # Remove app_id directory and its contents
-        if scripts_dir.exists():
-            shutil.rmtree(scripts_dir)
+        script_dir = project_root / "Apps" / app_info["appId"] / app_info["sanitizedAppName"] / "script"
 
-        # Remove app_name directory if empty after removing app_id
-        if app_dir.exists() and not any(app_dir.iterdir()):
-            app_dir.rmdir()
+        if script_dir.exists():
+            shutil.rmtree(script_dir)
 
     def get_app_info(self, app_name: str, app_id: str = None) -> Dict:
         app_info = self.get_app_by_name(app_name, app_id)
@@ -205,9 +199,8 @@ class QlikScript:
             List of file paths created
         """
         app_info = self.get_app_by_name(app_name, app_id)
-        # Create output directory: scripts/{app_name}/{app_id}
         project_root = self._get_project_root()
-        output_dir = project_root / "scripts" / app_info["sanitizedAppName"] / app_info["appId"]
+        output_dir = project_root / "Apps" / app_info["appId"] / app_info["sanitizedAppName"] / "script"
         output_dir.mkdir(parents=True, exist_ok=True)
         
         created_files = []
@@ -244,11 +237,11 @@ class QlikScript:
         """
         app_info = self.get_app_by_name(app_name, app_id)
         project_root = self._get_project_root()
-        scripts_path = project_root / "scripts" / app_info["sanitizedAppName"] / app_info["appId"]
-        
+        scripts_path = project_root / "Apps" / app_info["appId"] / app_info["sanitizedAppName"] / "script"
+
         if not scripts_path.exists():
             raise ValueError(f"Directory {scripts_path} does not exist")
-        
+
         # Get all .qvs files
         qvs_files = list(scripts_path.glob("*.qvs"))
         
@@ -308,11 +301,11 @@ class QlikScript:
     def get_app_script_tabbed(self, app_name: str, app_id: str = None) -> str:
         app_info = self.get_app_by_name(app_name, app_id)
         project_root = self._get_project_root()
-        script_dir = project_root / "scripts" / app_info["sanitizedAppName"] / app_info["appId"]
-        
+        script_dir = project_root / "Apps" / app_info["appId"] / app_info["sanitizedAppName"] / "script"
+
         if not script_dir.exists():
             raise ValueError(f"Directory {script_dir} does not exist")
-        
+
         qvs_files = list(script_dir.glob("*.qvs"))
         if not qvs_files:
             raise ValueError(f"No .qvs files found in {script_dir}")
