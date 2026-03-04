@@ -48,14 +48,16 @@ qlik get_ms "MyApp"              # download measures → masteritems/measures.js
 qlik set_ms "MyApp"              # create/update measures from measures.json
 qlik get_dim "MyApp"             # download dimensions → masteritems/dimensions.json
 qlik set_dim "MyApp"             # create/update dimensions from dimensions.json
+qlik pub_items "MyApp"           # publish shared space app → managed space app
 ```
 
 **Typical workflow:**
 
 ```bash
-qlik get_ms "MyApp" && qlik get_dim "MyApp"   # pull current master items from app.
+qlik get_ms "MyApp" && qlik get_dim "MyApp"   # pull current master items from shared space app
 # edit measures.json / dimensions.json locally …
-qlik set_ms "MyApp" && qlik set_dim "MyApp"   # push back
+qlik set_ms "MyApp" && qlik set_dim "MyApp"   # push back to shared space app
+qlik pub_items "MyApp"                        # publish shared space app to managed space app
 ```
 
 **JSON schema — measures.json**
