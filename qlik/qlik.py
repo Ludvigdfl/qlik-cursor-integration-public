@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import time
+import inspect
 from pathlib import Path
 from qlik_script import QlikScript
 from qlik_masteritems import Qlik_Masteritems
@@ -221,70 +222,30 @@ except ValueError as e:
 
 
 
+def _validate_and_call(cmd_name, func, args):
+    params = list(inspect.signature(func).parameters.values())
+    min_args = sum(1 for p in params if p.default is inspect.Parameter.empty)
+    max_args = len(params)
+    n_args = len(args)
+
+    if n_args < min_args or n_args > max_args:
+        parts = [f"qlik {cmd_name}"]
+        for p in params:
+            parts.append(f"[<{p.name}>]" if p.default is not inspect.Parameter.empty else f"<{p.name}>")
+        usage = " ".join(parts)
+        expected = f"{min_args}-{max_args}" if min_args != max_args else (f"exactly {min_args}" if min_args else "no")
+        print(f"Error: '{cmd_name}' takes {expected} argument(s), got {n_args}.")
+        print(f"Usage: {usage}")
+        sys.exit(1)
+
+    func(*args)
+
+
 try:
-    if tool_to_run == "get":
-        if len(sys.argv) == 4:
-            get(sys.argv[2], sys.argv[3])
-        else:
-            get(sys.argv[2])
+    _validate_and_call(tool_to_run, commands[tool_to_run], sys.argv[2:])
 
-    elif tool_to_run == "get_space":
-        get_space(sys.argv[2])
-
-    elif tool_to_run == "set":
-        if len(sys.argv) == 4:
-            set(sys.argv[2], sys.argv[3])
-        else:
-            set(sys.argv[2])
-
-    elif tool_to_run == "load":
-        if len(sys.argv) == 4:
-            load(sys.argv[2], sys.argv[3])
-        else:
-            load(sys.argv[2])
-
-    elif tool_to_run == "pub":
-        if len(sys.argv) == 4:
-            pub(sys.argv[2], sys.argv[3])
-        else:
-            pub(sys.argv[2])
-
-    elif tool_to_run == "rem":
-        if len(sys.argv) == 4:
-            rem(sys.argv[2], sys.argv[3])
-        else:
-            rem(sys.argv[2])
-        
-    elif tool_to_run == "get_items":
-        if len(sys.argv) == 4:
-            get_items(sys.argv[2], sys.argv[3])
-        else:
-            get_items(sys.argv[2])
-
-    elif tool_to_run == "set_items":
-        if len(sys.argv) == 4:
-            set_items(sys.argv[2], sys.argv[3])
-        else:
-            set_items(sys.argv[2])
-
-    elif tool_to_run == "pub_items":
-        if len(sys.argv) == 4:
-            pub_items(sys.argv[2], sys.argv[3])
-        else:
-            pub_items(sys.argv[2])
-
-    elif tool_to_run == "set_tenant":
-        set_tenant(sys.argv[2])
-
-    elif tool_to_run == "set_tenant_api_key":
-        set_tenant_api_key(sys.argv[2])
-
-    elif tool_to_run == "get_tenant":
-        get_tenant()
-
-    elif tool_to_run == "help":
-        help()
-
+except SystemExit:
+    raise
 except Exception as e:
     print(str(e))
     sys.exit(1)
