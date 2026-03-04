@@ -44,20 +44,18 @@ qlik pub "MyApp"                 # publish to managed space
 Master items are stored as JSON under `Apps/{appId}/{appName}/masteritems/`.
 
 ```bash
-qlik get_ms "MyApp"              # download measures → masteritems/measures.json
-qlik set_ms "MyApp"              # create/update measures from measures.json
-qlik get_dim "MyApp"             # download dimensions → masteritems/dimensions.json
-qlik set_dim "MyApp"             # create/update dimensions from dimensions.json
+qlik get_items "MyApp"           # pull measures + dimensions → masteritems/
+qlik set_items "MyApp"           # push (create/update) measures + dimensions from masteritems/
 qlik pub_items "MyApp"           # publish shared space app → managed space app
 ```
 
 **Typical workflow:**
 
 ```bash
-qlik get_ms "MyApp" && qlik get_dim "MyApp"   # pull current master items from shared space app
+qlik get_items "MyApp"           # pull current master items from shared space app
 # edit measures.json / dimensions.json locally …
-qlik set_ms "MyApp" && qlik set_dim "MyApp"   # push back to shared space app
-qlik pub_items "MyApp"                        # publish shared space app to managed space app
+qlik set_items "MyApp"           # push back to shared space app
+qlik pub_items "MyApp"           # publish shared space app to managed space app
 ```
 
 **JSON schema — measures.json**
@@ -92,7 +90,7 @@ qlik pub_items "MyApp"                        # publish shared space app to mana
 ]
 ```
 
-> **Duplicate handling:** if the app contains more than one master item with the same title, `set_ms` / `set_dim` will skip that item and write the conflicting entries to `measures_duplicates.json` / `dimensions_duplicates.json` for manual review.
+> **Duplicate handling:** if the app contains more than one master item with the same title, `set_items` will skip that item and write the conflicting entries to `measures_duplicates.json` / `dimensions_duplicates.json` for manual review.
 
 ### 5. Claude Code Skills
 
