@@ -30,10 +30,8 @@ Invoke via Bash: `PYTHONIOENCODING=utf-8 "$HOME/AppData/Local/Programs/Qlik_DEV/
 | `load` | `qlik load <app_name> [<app_id>]` | Trigger app reload with live log streaming |
 | `pub` | `qlik pub <app_name> [<app_id>]` | Publish shared space app to its managed space copy |
 | `rem` | `qlik rem <app_name> [<app_id>]` | Delete local script directory for the app |
-| `get_ms` | `qlik get_ms <app_name> [<app_id>]` | Download all master measures → `masteritems/measures.json` |
-| `set_ms` | `qlik set_ms <app_name> [<app_id>]` | Create/update master measures from `measures.json` |
-| `get_dim` | `qlik get_dim <app_name> [<app_id>]` | Download all master dimensions → `masteritems/dimensions.json` |
-| `set_dim` | `qlik set_dim <app_name> [<app_id>]` | Create/update master dimensions from `dimensions.json` |
+| `get_items` | `qlik get_items <app_name> [<app_id>]` | Download all master measures and dimensions → `masteritems/measures.json` and `dimensions.json` |
+| `set_items` | `qlik set_items <app_name> [<app_id>]` | Create/update master measures and dimensions from `measures.json` and `dimensions.json` |
 | `set_tenant` | `qlik set_tenant <url>` | Save tenant URL to config file |
 | `set_tenant_api_key` | `qlik set_tenant_api_key <key>` | Save API key to config file |
 | `get_tenant` | `qlik get_tenant` | Get current tenant URL and API key |
@@ -56,14 +54,12 @@ qlik pub "MyApp"          # 5. Publish to managed space
 ### Master Items
 
 ```
-qlik get_ms "MyApp"       # 1. Download master measures → masteritems/measures.json
-qlik get_dim "MyApp"      # 1. Download master dimensions → masteritems/dimensions.json
+qlik get_items "MyApp"    # 1. Download master measures + dimensions → masteritems/
 # ... edit JSON files ... # 2. Add/modify entries locally
-qlik set_ms "MyApp"       # 3. Create/update measures in the app
-qlik set_dim "MyApp"      # 3. Create/update dimensions in the app
+qlik set_items "MyApp"    # 3. Create/update measures and dimensions in the app
 ```
 
-`set_ms` / `set_dim` match items by `id` first, then by `title`. If more than one item in the app shares the same title, the item is skipped and written to `measures_duplicates.json` / `dimensions_duplicates.json` for manual review.
+`set_items` matches items by `id` first, then by `title`. If more than one item in the app shares the same title, the item is skipped and written to `measures_duplicates.json` / `dimensions_duplicates.json` for manual review.
 
 ## Local File Structure
 
@@ -79,8 +75,8 @@ Apps/
         1___TabName2.qvs
         2___TabName3.qvs
       masteritems/
-        measures.json         # Master measures (get_ms / set_ms)
-        dimensions.json       # Master dimensions (get_dim / set_dim)
+        measures.json         # Master measures (get_items / set_items)
+        dimensions.json       # Master dimensions (get_items / set_items)
         measures_duplicates.json    # Written when duplicate measures are found
         dimensions_duplicates.json  # Written when duplicate dimensions are found
 ```

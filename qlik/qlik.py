@@ -85,34 +85,20 @@ def pub(App_Name:str, App_Id:str = None):
     Qlik = QlikScript()
     Qlik.publish_app(App_Name, App_Id)
 
-def get_ms(App_Name: str, App_Id: str = None):
-    """Get master measures from Qlik app and save to Apps/{appId}/{appName}/masteritems/measures.json."""
+def get_items(App_Name: str, App_Id: str = None):
+    """Get master measures and dimensions from Qlik app and save to masteritems/measures.json and dimensions.json."""
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
     Qlik.get_measures()
-    Qlik.close()
-
-
-def set_ms(App_Name: str, App_Id: str = None):
-    """Set master measures in Qlik app from Apps/{appId}/{appName}/masteritems/measures.json."""
-    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
-    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
-    Qlik.create_measures()
-    Qlik.close()
-
-
-def get_dim(App_Name: str, App_Id: str = None):
-    """Get master dimensions from Qlik app and save to Apps/{appId}/{appName}/masteritems/dimensions.json."""
-    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
-    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
     Qlik.get_dimensions()
     Qlik.close()
 
 
-def set_dim(App_Name: str, App_Id: str = None):
-    """Set master dimensions in Qlik app from Apps/{appId}/{appName}/masteritems/dimensions.json."""
+def set_items(App_Name: str, App_Id: str = None):
+    """Set master measures and dimensions in Qlik app from masteritems/measures.json and dimensions.json."""
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    Qlik.create_measures()
     Qlik.create_dimensions()
     Qlik.close()
 
@@ -196,10 +182,8 @@ def help():
     print("🟢 qlik pub                  <app_name>  [<app_id>]: Publish the Qlik shared space app to the Qlik managed space app, optionally provide the app_id if multiple apps share the same name")
     print("🟢 qlik rem                  <app_name>  [<app_id>]: Empty the local script directory for app")
     print("")
-    print("🟢 qlik get_ms               <app_name>  [<app_id>]: Get all master measures from app and save to measures.json, optionally provide the app_id if multiple apps share the same name")
-    print("🟢 qlik set_ms               <app_name>  [<app_id>]: Set all master measures in app from measures.json, optionally provide the app_id if multiple apps share the same name")
-    print("🟢 qlik get_dim              <app_name>  [<app_id>]: Get all master dimensions from app and save to dimensions.json, optionally provide the app_id if multiple apps share the same name")
-    print("🟢 qlik set_dim              <app_name>  [<app_id>]: Set all master dimensions in app from dimensions.json, optionally provide the app_id if multiple apps share the same name")
+    print("🟢 qlik get_items            <app_name>  [<app_id>]: Get all master measures and dimensions from app and save to measures.json and dimensions.json")
+    print("🟢 qlik set_items            <app_name>  [<app_id>]: Set all master measures and dimensions in app from measures.json and dimensions.json")
     print("🟢 qlik pub_items            <app_name>  [<app_id>]: Publish shared space app to managed space app (use after updating master items)")
     print("")
     print("🟢 qlik set_tenant           <tenant_url>:           Set the Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
@@ -214,10 +198,8 @@ commands = {
     "rem": rem,
     "load": load,
     "pub": pub,
-    "get_ms": get_ms,
-    "set_ms": set_ms,
-    "get_dim": get_dim,
-    "set_dim": set_dim,
+    "get_items": get_items,
+    "set_items": set_items,
     "pub_items": pub_items,
     "set_tenant": set_tenant,
     "set_tenant_api_key": set_tenant_api_key,
@@ -273,29 +255,17 @@ try:
         else:
             rem(sys.argv[2])
         
-    elif tool_to_run == "get_ms":
+    elif tool_to_run == "get_items":
         if len(sys.argv) == 4:
-            get_ms(sys.argv[2], sys.argv[3])
+            get_items(sys.argv[2], sys.argv[3])
         else:
-            get_ms(sys.argv[2])
+            get_items(sys.argv[2])
 
-    elif tool_to_run == "set_ms":
+    elif tool_to_run == "set_items":
         if len(sys.argv) == 4:
-            set_ms(sys.argv[2], sys.argv[3])
+            set_items(sys.argv[2], sys.argv[3])
         else:
-            set_ms(sys.argv[2])
-
-    elif tool_to_run == "get_dim":
-        if len(sys.argv) == 4:
-            get_dim(sys.argv[2], sys.argv[3])
-        else:
-            get_dim(sys.argv[2])
-
-    elif tool_to_run == "set_dim":
-        if len(sys.argv) == 4:
-            set_dim(sys.argv[2], sys.argv[3])
-        else:
-            set_dim(sys.argv[2])
+            set_items(sys.argv[2])
 
     elif tool_to_run == "pub_items":
         if len(sys.argv) == 4:
