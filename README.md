@@ -2,13 +2,17 @@
 
 ## Set-up
 
-### 1. Expose 'qlik' as a cli
+### 1. Install dependencies
+
+Run `pip install -r requirements.txt` from the repo root to install required packages.
+
+### 2. Expose 'qlik' as a cli
 
 * Put the root of the folder in a logical place - like  `C:\Users\<YOU>\AppData\Local\Programs\<ROOT>`
 * Expose the `qlik` command by adding the absolute path for the `qlik.cmd` to your system environment variables - `C:\Users\<YOU>\AppData\Local\Programs\Qlik_DEV\qlik`
 * This will expose `qlik.cmd` during runtime.
 
-### 2. Connect to a Qlik Cloud Tenant
+### 3. Connect to a Qlik Cloud Tenant
 
 ```bash
 qlik set_tenant https://{tenant}.{region}.qlikcloud.com
@@ -16,7 +20,7 @@ qlik set_tenant_api_key <your-api-key>
 qlik get_tenant   # get current tenant URL and API key
 ```
 
-### 3. Usage — Script
+### 4. Usage — Script
 
 > **Important:** Always run `qlik` from your **project folder**, not from the CLI install directory from step 1.
 
@@ -39,7 +43,7 @@ qlik load "MyApp"                # reload to verify
 qlik pub "MyApp"                 # publish to managed space
 ```
 
-### 4. Usage — Master Items
+### 5. Usage — Master Items
 
 Master items are stored as JSON under `Apps/{appId}/{appName}/masteritems/`.
 
@@ -92,7 +96,7 @@ qlik pub_items "MyApp"           # publish shared space app to managed space app
 
 > **Duplicate handling:** if the app contains more than one master item with the same title, `set_items` will skip that item and write the conflicting entries to `measures_duplicates.json` / `dimensions_duplicates.json` for manual review.
 
-### 5. Claude Code Skills
+### 6. Claude Code Skills
 
 Skills in `.claude/skills/` extend Claude Code:
 
@@ -102,7 +106,7 @@ Skills in `.claude/skills/` extend Claude Code:
 
 Skills can also be globally installed in `~/.claude/skills/` to be available in any project.
 
-### 6. Install Syntax Highlighting
+### 7. Install Syntax Highlighting
 
 1. Open Cursor
 2. Go to **Extensions** (or press `Ctrl+Shift+X`)
@@ -110,6 +114,6 @@ Skills can also be globally installed in `~/.claude/skills/` to be available in 
 4. Select: `qlik highlight/gimly81.qlik-0.5.0.vsix`
 5. Restart Cursor
 
-### 7. Install Filename Highlighting
+### 8. Install Filename Highlighting
 
 Install VSCode Icons Theme (`vscode-icons-team.vscode-icons`) and activate it to display Qlik Sense icons for `.qvs` files.
