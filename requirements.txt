@@ -1,0 +1,2 @@
+requests==2.32.4
+qlik-sdk==0.17.0
