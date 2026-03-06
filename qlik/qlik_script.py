@@ -66,21 +66,28 @@ class QlikScript:
             url = f"{self.base_url}/items?resourceType=app&spaceType=shared&name={app_name}&resourceId={app_id}"
 
         response_data = self._get_all_paginated(url)
-        
+
         if not response_data:
             raise ValueError(f"No app found with name {app_name}")
         
         multiple_apps = ''
         for app in response_data:
             multiple_apps += f"\n{app['name']} ({app['resourceId']})"
-            
+         
+        # Qlik performs a search. 
+        # Searching for "Finans" will return both "Finans" and "Finans2"
+        if app_id:
+            response_data = [app for app in response_data if app["resourceId"] == app_id]
+        else:
+            response_data = [app for app in response_data if app["name"] == app_name]
+    
         if len(response_data) > 1:
             raise ValueError(f"""Multiple apps found similar or equal to ´{app_name}´. 
             Please provide more specific app_name or bothapp_name & app_id to disambiguate.
             Available apps: 
             {multiple_apps}
             """)
- 
+        
         app = response_data[0]
      
         app_dict = {
