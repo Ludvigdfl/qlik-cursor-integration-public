@@ -90,17 +90,24 @@ def get_items(App_Name: str, App_Id: str = None):
     """Get master measures and dimensions from Qlik app and save to masteritems/measures.json and dimensions.json."""
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
-    Qlik.get_measures()
-    Qlik.get_dimensions()
+    measures = Qlik.get_measures()
+    dimensions = Qlik.get_dimensions()
+    save_dir.mkdir(parents=True, exist_ok=True)
+    with open(save_dir / "measures.json", "w", encoding="utf-8") as f:
+        json.dump(measures, f, indent=4)
+    with open(save_dir / "dimensions.json", "w", encoding="utf-8") as f:
+        json.dump(dimensions, f, indent=4)
+    print("✅ Measures and dimensions fetched successfully!")
     Qlik.close()
 
 
 def set_items(App_Name: str, App_Id: str = None):
-    """Set master measures and dimensions in Qlik app from masteritems/measures.json and dimensions.json."""
+    """Set master measures and dimensions in Qlik app from masteritems/measures.json and dimensions.json (changed items only)."""
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
-    Qlik.create_measures()
-    Qlik.create_dimensions()
+    changed_measures, changed_dimensions = Qlik.get_items_changed()
+    Qlik.create_measures(changed_measures)
+    Qlik.create_dimensions(changed_dimensions)
     Qlik.close()
 
 
