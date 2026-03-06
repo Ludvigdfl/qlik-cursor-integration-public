@@ -157,11 +157,8 @@ class Qlik_Masteritems:
         self.app.do_save()
 
 
-    def create_measures(self) -> None:
-        """Loads measures from measures.json and creates or updates them. Skips and logs duplicates."""
-
-        with open(self.save_dir / "measures.json", "r", encoding="utf-8") as f:
-            measures = json.load(f)
+    def create_measures(self, measures: list) -> None:
+        """Creates or updates the given measures in the app. Skips and logs duplicates."""
 
         duplicates_path = self.save_dir / "measures_duplicates.json"
 
@@ -301,11 +298,8 @@ class Qlik_Masteritems:
 
         self.app.do_save()
 
-    def create_dimensions(self) -> None:
-        """Loads dimensions from dimensions.json and creates or updates them. Skips and logs duplicates."""
-
-        with open(self.save_dir / "dimensions.json", "r", encoding="utf-8") as f:
-            dimensions = json.load(f)
+    def create_dimensions(self, dimensions: list) -> None:
+        """Creates or updates the given dimensions in the app. Skips and logs duplicates."""
 
         duplicates_path = self.save_dir / "dimensions_duplicates.json"
 
@@ -343,7 +337,7 @@ class Qlik_Masteritems:
                     duplicates_path.write_text(json.dumps(existing, indent=4), encoding="utf-8")
 
     def get_measures(self) -> list[dict]:
-        """Returns a list of all measures in the app."""
+        """Fetches all measures from the app and returns them as a sorted list."""
 
         measures = self.app.create_session_object({
             "qInfo": {"qType": "MeasureList"},
@@ -369,17 +363,10 @@ class Qlik_Masteritems:
                 "fmt":         m.qData.qMeasure.get("qNumFormat", {}).get("qFmt", ""),
                 "tags":        getattr(m.qData, "tags", []),
             }
-            for m in layout.qMeasureList.qItems    
+            for m in layout.qMeasureList.qItems
         ]
-        
-        measures_list.sort(key=lambda x: x["title"], reverse=False)  
-
-
-        self.save_dir.mkdir(parents=True, exist_ok=True)
-        with open(self.save_dir / "measures.json", "w", encoding="utf-8") as f:
-            json.dump(measures_list, f, indent=4)
-        
-        print("✅ Measures fetched successfully!")
+        measures_list.sort(key=lambda x: x["title"])
+        return measures_list
 
 
     def publish_app(self) -> None:
@@ -418,7 +405,7 @@ class Qlik_Masteritems:
         print(f"✅ '{name}' published successfully")
 
     def get_dimensions(self) -> list[dict]:
-        """Returns a list of all master dimensions in the app."""
+        """Fetches all master dimensions from the app and returns them as a sorted list."""
 
         dimensions = self.app.create_session_object({
             "qInfo": {"qType": "DimensionList"},
@@ -436,22 +423,50 @@ class Qlik_Masteritems:
         layout = dimensions.get_layout()
         dimensions_list = [
             {
-                "title":       m.qMeta.title,
-                "id":          m.qInfo.qId,                
-                "description": m.qMeta.description,
-                "definition":        (m.qData.qDim.get("qFieldDefs") or [""])[0],
-                "label":             (m.qData.qDim.get("qFieldLabels") or [""])[0],
-                "label_expression":  m.qData.qDim.get("qLabelExpression", ""),
-                "tags":              getattr(m.qData, "tags", []),
+                "title":            m.qMeta.title,
+                "id":               m.qInfo.qId,
+                "description":      m.qMeta.description,
+                "definition":       (m.qData.qDim.get("qFieldDefs") or [""])[0],
+                "label":            (m.qData.qDim.get("qFieldLabels") or [""])[0],
+                "label_expression": m.qData.qDim.get("qLabelExpression", ""),
+                "tags":             getattr(m.qData, "tags", []),
             }
             for m in layout.qDimensionList.qItems
         ]
-        
-        dimensions_list.sort(key=lambda x: x["title"], reverse=False)
+        dimensions_list.sort(key=lambda x: x["title"])
+        return dimensions_list
 
+    def get_items_changed(self) -> tuple[list[dict], list[dict]]:
+        """Returns only the measures and dimensions that differ between local JSON files and the current Qlik app state."""
 
-        self.save_dir.mkdir(parents=True, exist_ok=True)
-        with open(self.save_dir / "dimensions.json", "w", encoding="utf-8") as f:
-            json.dump(dimensions_list, f, indent=4)
-        
-        print("✅ Dimensions fetched successfully!")
+        with open(self.save_dir / "measures.json", "r", encoding="utf-8") as f:
+            local_measures = json.load(f)
+        with open(self.save_dir / "dimensions.json", "r", encoding="utf-8") as f:
+            local_dimensions = json.load(f)
+
+        fetched_measures = self.get_measures()
+        fetched_dimensions = self.get_dimensions()
+
+        fetched_measures_by_id = {m["id"]: m for m in fetched_measures}
+        fetched_dimensions_by_id = {d["id"]: d for d in fetched_dimensions}
+
+        measure_fields = ["title", "description", "definition", "label", "fmt", "tags"]
+        dimension_fields = ["title", "description", "definition", "label", "label_expression", "tags"]
+
+        def is_measure_changed(local: dict) -> bool:
+            fetched = fetched_measures_by_id.get(local.get("id"))
+            if fetched is None:
+                return True
+            return any(local.get(f) != fetched.get(f) for f in measure_fields)
+
+        def is_dimension_changed(local: dict) -> bool:
+            fetched = fetched_dimensions_by_id.get(local.get("id"))
+            if fetched is None:
+                return True
+            return any(local.get(f) != fetched.get(f) for f in dimension_fields)
+
+        changed_measures = [m for m in local_measures if is_measure_changed(m)]
+        changed_dimensions = [d for d in local_dimensions if is_dimension_changed(d)]
+
+        print(f"Changes detected: {len(changed_measures)} measure(s), {len(changed_dimensions)} dimension(s)")
+        return changed_measures, changed_dimensions
