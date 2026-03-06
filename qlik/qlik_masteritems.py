@@ -219,8 +219,8 @@ class Qlik_Masteritems:
                 "id":          m.qInfo.qId,
                 "title":       m.qMeta.title,
                 "description": m.qMeta.description,
-                "definition":        m.qData.qDim.get("qFieldDefs", [""])[0],
-                "label":             m.qData.qDim.get("qFieldLabels", [""])[0],
+                "definition":        (m.qData.qDim.get("qFieldDefs") or [""])[0],
+                "label":             (m.qData.qDim.get("qFieldLabels") or [""])[0],
                 "label_expression":  m.qData.qDim.get("qLabelExpression", ""),
                 "tags":              getattr(m.qData, "tags", []),
             }
@@ -433,8 +433,8 @@ class Qlik_Masteritems:
                 "id":          m.qInfo.qId,
                 "title":       m.qMeta.title,
                 "description": m.qMeta.description,
-                "definition":        m.qData.qDim.get("qFieldDefs", [""])[0],
-                "label":             m.qData.qDim.get("qFieldLabels", [""])[0],
+                "definition":        (m.qData.qDim.get("qFieldDefs") or [""])[0],
+                "label":             (m.qData.qDim.get("qFieldLabels") or [""])[0],
                 "label_expression":  m.qData.qDim.get("qLabelExpression", ""),
                 "tags":              getattr(m.qData, "tags", []),
             }
@@ -444,5 +444,3 @@ class Qlik_Masteritems:
         self.save_dir.mkdir(parents=True, exist_ok=True)
         with open(self.save_dir / "dimensions.json", "w", encoding="utf-8") as f:
             json.dump(dimensions_list, f, indent=4)
-
-
