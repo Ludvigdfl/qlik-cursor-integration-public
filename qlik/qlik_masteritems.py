@@ -361,8 +361,8 @@ class Qlik_Masteritems:
         layout = measures.get_layout()
         measures_list = [
             {
-                "id":          m.qInfo.qId,
                 "title":       m.qMeta.title,
+                "id":          m.qInfo.qId,
                 "description": m.qMeta.description,
                 "definition":  m.qData.qMeasure.get("qDef", ""),
                 "label":       m.qData.qMeasure.get("qLabelExpression", ""),
@@ -370,11 +370,17 @@ class Qlik_Masteritems:
                 "tags":        getattr(m.qData, "tags", []),
             }
             for m in layout.qMeasureList.qItems    
-        ]  
+        ]
+        
+        measures_list.sort(key=lambda x: x["title"], reverse=False)  
+
 
         self.save_dir.mkdir(parents=True, exist_ok=True)
         with open(self.save_dir / "measures.json", "w", encoding="utf-8") as f:
             json.dump(measures_list, f, indent=4)
+        
+        print("✅ Measures fetched successfully!")
+
 
     def publish_app(self) -> None:
         """Publish the shared space app to its managed space counterpart."""
@@ -430,8 +436,8 @@ class Qlik_Masteritems:
         layout = dimensions.get_layout()
         dimensions_list = [
             {
-                "id":          m.qInfo.qId,
                 "title":       m.qMeta.title,
+                "id":          m.qInfo.qId,                
                 "description": m.qMeta.description,
                 "definition":        (m.qData.qDim.get("qFieldDefs") or [""])[0],
                 "label":             (m.qData.qDim.get("qFieldLabels") or [""])[0],
@@ -440,7 +446,12 @@ class Qlik_Masteritems:
             }
             for m in layout.qDimensionList.qItems
         ]
+        
+        dimensions_list.sort(key=lambda x: x["title"], reverse=False)
+
 
         self.save_dir.mkdir(parents=True, exist_ok=True)
         with open(self.save_dir / "dimensions.json", "w", encoding="utf-8") as f:
             json.dump(dimensions_list, f, indent=4)
+        
+        print("✅ Dimensions fetched successfully!")
