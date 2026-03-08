@@ -1,0 +1,31 @@
+name: Sync to public repo
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push to public repo (excluding .github/workflows)
+        env:
+          PAT: ${{ secrets.QLIK_CURSOR_INTEGRATION_PUBLIC_PAT }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global url."https://x-access-token:${PAT}@github.com/".insteadOf "https://github.com/"
+          git remote add public https://github.com/Ludvigdfl/qlik-cursor-integration-public.git
+
+          # Create a filtered branch that excludes .github/workflows
+          git checkout -b sync-filtered
+          git rm -r --cached .github/workflows
+          git commit -m "Remove .github/workflows for public sync"
+
+          git push public sync-filtered:main --force

@@ -1,0 +1,42 @@
+{
+  // Associate .qvs files with Qlik script language
+  "files.associations": {
+    "*.qvs": "qlik"
+  },
+  
+  // Optional: Configure editor settings for Qlik scripts
+  "[qlik]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": false,
+    "editor.wordWrap": "on"
+  },
+  
+  // File icon associations (requires vscode-icons extension)
+  // Install: vscode-icons-team.vscode-icons
+  // VSCode Icons has built-in Qlik logo support for .qvs files
+  "vsicons.associations.files": [
+    {
+      "icon": "qlikview",
+      "extensions": ["qvs"],
+      "filename": true,
+      "format": "svg"
+    }
+  ],
+  
+  // Alternative: Material Icon Theme associations
+  // Install: PKief.material-icon-theme
+  "material-icon-theme.files.associations": {
+    "*.qvs": "qlikview"
+  },
+  
+  // File encoding
+  "files.encoding": "utf8",
+  
+  // Exclude patterns (optional)
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true
+  }
+}
+
