@@ -76,8 +76,7 @@ class Qlik_Masteritems:
                 "tags":        getattr(m.qData, "tags", []),
             }
             for m in layout.qMeasureList.qItems
-            if m.qMeta.title == title
-            and (id is None or m.qInfo.qId == id)
+            if (id is not None and m.qInfo.qId == id) or (id is None and m.qMeta.title == title)
         ]
 
     def delete_master_measure(self, title: str) -> bool:
@@ -173,7 +172,7 @@ class Qlik_Masteritems:
                 id=measure.get("id", None),
             )
 
-            matches = self.master_measure_exists(measure["title"], measure["id"])
+            matches = self.master_measure_exists(measure["title"], measure.get("id"))
 
             if len(matches) == 0:
                 print(f"Creating: '{measure['title']}' ✅")
@@ -222,8 +221,7 @@ class Qlik_Masteritems:
                 "tags":              getattr(m.qData, "tags", []),
             }
             for m in layout.qDimensionList.qItems
-            if m.qMeta.title == title
-            and (id is None or m.qInfo.qId == id)
+            if (id is not None and m.qInfo.qId == id) or (id is None and m.qMeta.title == title)
         ]
 
     def delete_master_dimension(self, title: str) -> bool:
@@ -436,6 +434,22 @@ class Qlik_Masteritems:
         dimensions_list.sort(key=lambda x: x["title"])
         return dimensions_list
 
+    
+    def _check_duplicate_ids(self, items: list[dict], file_name: str) -> None:
+        """Raises ValueError if any items share the same non-null ID."""
+        ids = [item["id"] for item in items if item.get("id")]
+        seen, duplicates = set(), set()
+        for id_ in ids:
+            if id_ in seen:
+                duplicates.add(id_)
+            seen.add(id_)
+        if duplicates:
+            self.close()
+            raise ValueError(f"""Duplicate IDs found in {file_name}: {', '.join(sorted(duplicates))}
+Each item must have a unique ID when publishing to qlik.
+Correct and run set_items again."""
+            )
+
     def get_items_changed(self) -> tuple[list[dict], list[dict]]:
         """Returns only the measures and dimensions that differ between local JSON files and the current Qlik app state."""
 
@@ -443,6 +457,9 @@ class Qlik_Masteritems:
             local_measures = json.load(f)
         with open(self.save_dir / "dimensions.json", "r", encoding="utf-8") as f:
             local_dimensions = json.load(f)
+
+        self._check_duplicate_ids(local_measures, "measures.json")
+        self._check_duplicate_ids(local_dimensions, "dimensions.json")
 
         fetched_measures = self.get_measures()
         fetched_dimensions = self.get_dimensions()

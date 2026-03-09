@@ -107,11 +107,22 @@ def get_items(App_Name: str, App_Id: str = None):
 
 def set_items(App_Name: str, App_Id: str = None):
     """Set master measures and dimensions in Qlik app from masteritems/measures.json and dimensions.json (changed items only)."""
+    
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
     changed_measures, changed_dimensions = Qlik.get_items_changed()
+    
+    # Create measures and dimensions in Qlik
     Qlik.create_measures(changed_measures)
     Qlik.create_dimensions(changed_dimensions)
+    
+    # Get measures and dimensions from Qlik to sync IDs with local files (Qlik generates GUID even though we provide an ID or not)
+    measures = Qlik.get_measures()
+    dimensions = Qlik.get_dimensions()
+    with open(save_dir / "measures.json", "w", encoding="utf-8") as f:
+        json.dump(measures, f, indent=4)
+    with open(save_dir / "dimensions.json", "w", encoding="utf-8") as f:
+        json.dump(dimensions, f, indent=4)
     Qlik.close()
 
 
