@@ -1,5 +1,6 @@
 @echo off
 cd /d "%~dp0"
+py -m ensurepip --upgrade
 pip install uv
 uv sync
 echo.
