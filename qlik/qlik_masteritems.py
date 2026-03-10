@@ -541,7 +541,7 @@ class Qlik_Masteritems:
         published_sheet_ids  = []
         for sheet_id in {item["sheet_id"] for item in inline_items}:
             sheet_obj = self.app.get_object(sheet_id)
-            if getattr(getattr(sheet_obj.get_layout(), "qMeta", None), "published", False):
+            if self._is_published(sheet_obj.get_layout()):
                 published_sheet_objs.append(sheet_obj)
                 published_sheet_ids.append(sheet_id)
 
@@ -557,7 +557,7 @@ class Qlik_Masteritems:
             }
             for item in inline_items
         }
-        diff_path = self.save_dir.parent / "Layout" / "Sheets" / "items_diff" / "diff.json"
+        diff_path = self._items_diff_path
         diff_path.parent.mkdir(parents=True, exist_ok=True)
         if diff_path.exists():
             print("Layout/Sheets/items_diff/diff.json already exists — skipping save to preserve originals. Run revert_chart_diffs first.")
@@ -609,7 +609,7 @@ class Qlik_Masteritems:
             List of object IDs that were reverted.
         """
 
-        diffs_path = self.save_dir.parent / "Layout" / "Sheets" / "items_diff" / "diff.json"
+        diffs_path = self._items_diff_path
         if not diffs_path.exists():
             print("No Layout/Sheets/items_diff/diff.json found — nothing to revert.")
             return []
@@ -630,8 +630,7 @@ class Qlik_Masteritems:
             layout    = sheet_obj.get_layout()
             child_ids = {child.qInfo.qId for child in (layout.qChildList.qItems or [])}
             existing_ids |= child_ids
-            is_published = getattr(getattr(layout, "qMeta", None), "published", False)
-            if is_published and (child_ids & original_obj_ids):
+            if self._is_published(layout) and (child_ids & original_obj_ids):
                 sheets_to_unpublish.append(sheet_obj)
 
         self._unpublish_sheets(sheets_to_unpublish)
@@ -673,6 +672,14 @@ class Qlik_Masteritems:
 Each item must have a unique ID when publishing to qlik.
 Correct and run set_items again."""
             )
+
+    @property
+    def _items_diff_path(self) -> Path:
+        return self.save_dir.parent / "Layout" / "Sheets" / "items_diff" / "diff.json"
+
+    @staticmethod
+    def _is_published(layout) -> bool:
+        return getattr(getattr(layout, "qMeta", None), "published", False)
 
     def _get_sheets(self):
         """Returns all sheet items from the app's SheetList."""
