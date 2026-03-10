@@ -746,7 +746,6 @@ Correct and run set_items again."""
                     json.dump(data, f, indent=4)
                 total += 1
 
-            print(f"  {sheet_title}: {len(children)} object(s)")
 
         return total
 

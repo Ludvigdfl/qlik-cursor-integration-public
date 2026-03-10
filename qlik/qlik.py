@@ -63,10 +63,11 @@ def get_space(Space_Name:str):
         app_script_tabbed = Qlik.parse_script_tabs(app_script)
 
         Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name, App_Id)
-        get_items(App_Name, App_Id)
+        get_items(App_Name, App_Id, silent=True)
         get_objects(App_Name, App_Id)
+        print()
 
-    print(f"\n✅ Space {Space_Name} fetched successfully")
+    print(f"Space {Space_Name} fetched successfully")
 
 
 def set(App_Name:str, App_Id:str = None):
@@ -91,8 +92,10 @@ def pub(App_Name:str, App_Id:str = None):
     Qlik = QlikScript()
     Qlik.publish_app(App_Name, App_Id)
 
-def get_items(App_Name: str, App_Id: str = None):
+def get_items(App_Name: str, App_Id: str = None, silent: bool = False):
     """Get master measures and dimensions from Qlik app and save to masteritems/measures.json and dimensions.json."""
+    if not silent:
+        print(f"... Fetching ...")
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
     measures = Qlik.get_measures()
@@ -160,7 +163,7 @@ def get_objects(App_Name: str, App_Id: str = None):
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
     total = Qlik.get_objects(objects_root)
     Qlik.close()
-    print(f"\n✅ {App_Name} — {total} object(s) saved.")
+    print(f"✅ {App_Name} - objects")
 
 
 def load(App_Name:str, App_Id:str = None):
