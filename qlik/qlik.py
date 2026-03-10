@@ -134,22 +134,13 @@ def pub_items(App_Name: str, App_Id: str = None):
     Qlik.close()
 
 
-def create_chart_diffs(App_Name: str, App_Id_or_Color: str = None, Color: str = "#ffcccc"):
+def create_chart_diffs(App_Name: str, App_Id: str = None):
     """Highlight all chart objects with inline (non-master) measures or dimensions by setting a background color.
     Originals are saved to chart_diffs.json so revert_chart_diffs can restore them."""
-    # Allow: create_chart_diffs <app> [color]  or  create_chart_diffs <app> <app_id> [color]
-    # Detect if the second arg looks like a color (starts with #) rather than an app ID
-    App_Id = None
-    color  = "#ffcccc"
-    if App_Id_or_Color is not None:
-        if App_Id_or_Color.startswith("#"):
-            color = App_Id_or_Color
-        else:
-            App_Id = App_Id_or_Color
-            color  = Color
+    color = "#ffcccc"
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
-    Qlik.set_inline_object_background(color)
+    Qlik.set_object_background(color)
     Qlik.close()
 
 
@@ -157,7 +148,7 @@ def revert_chart_diffs(App_Name: str, App_Id: str = None):
     """Restore the original background colors of objects highlighted by create_chart_diffs."""
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
-    Qlik.revert_inline_object_background()
+    Qlik.revert_object_background()
     Qlik.close()
 
 
@@ -240,8 +231,8 @@ def help():
     print("🟢 qlik set_items            <app_name>     [<app_id>]   Set all master measures and dimensions in shared space <app> from measures.json and dimensions.json")
     print("🟢 qlik pub_items            <app_name>     [<app_id>]   Publish shared space <app> to managed space app (use after updating master items)")
     print("")
-    print("🟢 qlik create_chart_diffs   <app_name>     [<app_id>]   Highlight chart objects with inline (non-master) expressions in pink. Saves originals to chart_diffs.json")
-    print("🟢 qlik revert_chart_diffs   <app_name>     [<app_id>]   Restore original backgrounds from chart_diffs.json")
+    print("🟢 qlik create_chart_diffs   <app_name>     [<app_id>]   Highlight chart objects with inline (non-master) expressions in pink.")
+    print("🟢 qlik revert_chart_diffs   <app_name>     [<app_id>]   Restore original backgrounds")
     print("")
     print("🟢 qlik set_tenant           <tenant_url>                Set Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
     print("🟢 qlik set_tenant_api_key   <api_key>                   Set Qlik API key")

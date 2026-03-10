@@ -439,7 +439,7 @@ class Qlik_Masteritems:
         """Returns all chart objects across all sheets with their measures and dimensions.
 
         Each entry contains the object ID, type, sheet title, and lists of dimensions/measures.
-        Each dimension/measure indicates whether it's a master item (via qLibraryId) or inline.
+        Each dimension/measure indicates whether it's a master item: qLibraryId (master) or inline (inline).
         """
 
         sheet_list = self.app.create_session_object({
@@ -468,28 +468,53 @@ class Qlik_Masteritems:
                 obj   = self.app.get_object(obj_id)
                 props = obj.get_properties()
 
+                def _parse_hc(hc):
+                    dims, meas = [], []
+                    for dim in getattr(hc, "qDimensions", []):
+                        library_id = getattr(dim, "qLibraryId", None) or None
+                        if library_id:
+                            dims.append({"type": "master", "library_id": library_id})
+                        else:
+                            field_defs = getattr(dim.qDef, "qFieldDefs", [])
+                            dims.append({"type": "inline", "expression": field_defs[0] if field_defs else ""})
+                    for mea in getattr(hc, "qMeasures", []):
+                        library_id = getattr(mea, "qLibraryId", None) or None
+                        if library_id:
+                            meas.append({"type": "master", "library_id": library_id})
+                        else:
+                            expr = getattr(mea.qDef, "qDef", "")
+                            meas.append({"type": "inline", "expression": expr})
+                    return dims, meas
+
                 hc = getattr(props, "qHyperCubeDef", None)
-                if hc is None:
-                    continue
+                if hc is not None:
+                    dimensions, measures = _parse_hc(hc)
+                else:
+                    # Map objects: qUndoExclude is a plain dict with gaLayers,
+                    # each layer is also a dict containing its own qHyperCubeDef dict
+                    dimensions, measures = [], []
+                    undo = getattr(props, "qUndoExclude", None) or {}
+                    for layer in (undo.get("gaLayers", []) if isinstance(undo, dict) else []):
+                        layer_hc = layer.get("qHyperCubeDef") if isinstance(layer, dict) else None
+                        if layer_hc is None:
+                            continue
+                        for dim in layer_hc.get("qDimensions", []):
+                            library_id = dim.get("qLibraryId") or None
+                            if library_id:
+                                dimensions.append({"type": "master", "library_id": library_id})
+                            else:
+                                field_defs = dim.get("qDef", {}).get("qFieldDefs", [])
+                                dimensions.append({"type": "inline", "expression": field_defs[0] if field_defs else ""})
+                        for mea in layer_hc.get("qMeasures", []):
+                            library_id = mea.get("qLibraryId") or None
+                            if library_id:
+                                measures.append({"type": "master", "library_id": library_id})
+                            else:
+                                measures.append({"type": "inline", "expression": mea.get("qDef", {}).get("qDef", "")})
+                    if not dimensions and not measures:
+                        continue
 
-                dimensions = []
-                for dim in getattr(hc, "qDimensions", []):
-                    library_id = getattr(dim, "qLibraryId", None) or None
-                    if library_id:
-                        dimensions.append({"type": "master", "library_id": library_id})
-                    else:
-                        field_defs = getattr(dim.qDef, "qFieldDefs", [])
-                        dimensions.append({"type": "inline", "expression": field_defs[0] if field_defs else ""})
-
-                measures = []
-                for mea in getattr(hc, "qMeasures", []):
-                    library_id = getattr(mea, "qLibraryId", None) or None
-                    if library_id:
-                        measures.append({"type": "master", "library_id": library_id})
-                    else:
-                        expr = getattr(mea.qDef, "qDef", "")
-                        measures.append({"type": "inline", "expression": expr})
-
+                ext_props = getattr(props, "props", None)
                 results.append({
                     "id":          obj_id,
                     "type":        obj_type,
@@ -497,10 +522,11 @@ class Qlik_Masteritems:
                     "dimensions":  dimensions,
                     "measures":    measures,
                     "components":  getattr(props, "components", []),
+                    "table_bg":    ext_props.get("tableBackgroundColor") if isinstance(ext_props, dict) else None,
                 })
         return results
 
-    def set_inline_object_background(self, color: str) -> list[str]:
+    def set_object_background(self, color: str) -> list[str]:
         """Highlights all objects with inline measures/dimensions by setting a background color.
         Saves the original components for each object to chart_diffs.json before overwriting.
 
@@ -524,12 +550,17 @@ class Qlik_Masteritems:
                 "type":       item["type"],
                 "sheet":      item["sheet"],
                 "components": item["components"],
+                "table_bg":   item["table_bg"],
             }
             for item in inline_items
         }
-        self.save_dir.mkdir(parents=True, exist_ok=True)
-        with open(self.save_dir / "chart_diffs.json", "w", encoding="utf-8") as f:
-            json.dump(originals, f, indent=4)
+        diff_path = self.save_dir.parent / "chart_diff" / "diff.json"
+        diff_path.parent.mkdir(parents=True, exist_ok=True)
+        if diff_path.exists():
+            print("chart_diff/diff.json already exists — skipping save to preserve originals. Run revert_chart_diffs first.")
+        else:
+            with open(diff_path, "w", encoding="utf-8") as f:
+                json.dump(originals, f, indent=4)
 
         updated = []
         for item in inline_items:
@@ -547,24 +578,36 @@ class Qlik_Masteritems:
                     }
                 }
             ]
+            ext_props = getattr(props, "props", None)
+            if isinstance(ext_props, dict) and "tableBackgroundColor" in ext_props:
+                ext_props["tableBackgroundColor"] = color
             obj.set_properties(props)
-            updated.append(item["id"])
-            print(f"  Highlighted: [{item['type']}] {item['id']} on '{item['sheet']}'")
+            updated.append(item)
 
         self.app.do_save()
-        print(f"\nHighlighted {len(updated)} object(s) — originals saved to chart_diffs.json")
+
+        current_sheet = None
+        for item in updated:
+            if item["sheet"] != current_sheet:
+                if current_sheet is not None:
+                    print()
+                print(item["sheet"])
+                current_sheet = item["sheet"]
+            print(f"  [{item['type']}] {item['id']}")
+
+        print(f"\nHighlighted {len(updated)} object(s)")
         return updated
 
-    def revert_inline_object_background(self) -> list[str]:
+    def revert_object_background(self) -> list[str]:
         """Restores the original background components for all objects saved by set_inline_object_background.
 
         Returns:
             List of object IDs that were reverted.
         """
 
-        diffs_path = self.save_dir / "chart_diffs.json"
+        diffs_path = self.save_dir.parent / "chart_diff" / "diff.json"
         if not diffs_path.exists():
-            print("No chart_diffs.json found — nothing to revert.")
+            print("No chart_diff/diff.json found — nothing to revert.")
             return []
 
         with open(diffs_path, "r", encoding="utf-8") as f:
@@ -575,13 +618,17 @@ class Qlik_Masteritems:
             obj   = self.app.get_object(obj_id)
             props = obj.get_properties()
             props.components = meta["components"]
+            if meta.get("table_bg") is not None:
+                ext_props = getattr(props, "props", None)
+                if isinstance(ext_props, dict) and "tableBackgroundColor" in ext_props:
+                    ext_props["tableBackgroundColor"] = meta["table_bg"]
             obj.set_properties(props)
             reverted.append(obj_id)
             print(f"  Reverted: [{meta['type']}] {obj_id} on '{meta['sheet']}'")
 
         self.app.do_save()
         diffs_path.unlink()
-        print(f"\nReverted {len(reverted)} object(s) — chart_diffs.json removed")
+        print(f"\nReverted {len(reverted)} object(s)")
         return reverted
 
     def _check_duplicate_ids(self, items: list[dict], file_name: str) -> None:
