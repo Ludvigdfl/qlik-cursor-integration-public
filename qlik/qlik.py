@@ -37,36 +37,31 @@ def _masteritems_dir(App_Name: str, App_Id: str = None) -> tuple:
 
 
 
-def get(App_Name:str, App_Id:str = None):
+def get(App_Name: str, App_Id: str = None):
     """Get script from Qlik app, parse tabs, and save to files."""
     print(f"... Fetching ...")
     Qlik = QlikScript()
     Qlik.empty_script_directory(App_Name, App_Id)
-
     app_script        = Qlik.get_script(App_Name, App_Id)
     app_script_tabbed = Qlik.parse_script_tabs(app_script)
-
     Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name, App_Id)
 
 
-def get_space(Space_Name:str):
-    """Get script and master items from all apps in shared space."""
+def get_app(App_Name: str, App_Id: str = None):
+    """Get script, master items, and sheet objects from Qlik app."""
+    get(App_Name, App_Id)
+    get_items(App_Name, App_Id, silent=True)
+    get_objects(App_Name, App_Id)
+
+
+def get_space(Space_Name: str):
+    """Get script, master items, and sheet objects for all apps in a shared space."""
     Qlik = QlikScript()
     apps = Qlik.get_apps_in_space(Space_Name)
     print(f"... Fetching {len(apps)} app(s) ...")
     for app in apps:
-        App_Name = app["name"]
-        App_Id = app["resourceId"]
-        Qlik.empty_script_directory(App_Name, App_Id)
-
-        app_script        = Qlik.get_script(App_Name, App_Id)
-        app_script_tabbed = Qlik.parse_script_tabs(app_script)
-
-        Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name, App_Id)
-        get_items(App_Name, App_Id, silent=True)
-        get_objects(App_Name, App_Id)
+        get_app(app["name"], app["resourceId"])
         print()
-
     print(f"Space {Space_Name} fetched successfully")
 
 
@@ -233,22 +228,19 @@ def help():
     print("   Command                   <arg1>         [<arg2>]      Description")
     print("-----------------------------------------------------------------------------------------------------------------------------")
 
-    print("🟢 qlik get_space            <space_name>                Get script, master measures and dimensions, and sheet objects for all apps in a shared <space_name>")
+    print("🟢 qlik get_space            <space_name>                Get script, master items, and sheet objects for all apps in a shared <space_name>")
+    print("🟢 qlik get_app              <app_name>     [<app_id>]   Get script, master items, and sheet objects from shared space <app>")
     print("")
-    print("🟢 qlik get                  <app_name>     [<app_id>]   Get script from the Qlik shared space <app> [<optionally provide the app_id if multiple apps share the same name>]")
     print("🟢 qlik set                  <app_name>     [<app_id>]   Set script for the Qlik shared space <app> ")
     print("🟢 qlik load                 <app_name>     [<app_id>]   Reload the Qlik shared space <app>")
     print("🟢 qlik pub                  <app_name>     [<app_id>]   Publish the Qlik shared space <app> to the Qlik managed space app")
     print("🟢 qlik rem                  <app_name>     [<app_id>]   Empty the local script directory for <app>")
     print("")
-    print("🟢 qlik get_items            <app_name>     [<app_id>]   Get all master measures and dimensions from shared space <app> and save to measures.json and dimensions.json")
     print("🟢 qlik set_items            <app_name>     [<app_id>]   Set all master measures and dimensions in shared space <app> from measures.json and dimensions.json")
     print("🟢 qlik pub_items            <app_name>     [<app_id>]   Publish shared space <app> to managed space app (use after updating master items)")
     print("")
     print("🟢 qlik flag_items           <app_name>     [<app_id>]   Highlight charts using non-master measures or dimensions in red.")
     print("🟢 qlik unflag_items         <app_name>     [<app_id>]   Restore original color of charts using non-master measures or dimensions.")
-    print("")
-    print("🟢 qlik get_objects          <app_name>     [<app_id>]   Save full JSON layout for every sheet object.")
     print("")
     print("🟢 qlik set_tenant           <tenant_url>                Set Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
     print("🟢 qlik set_tenant_api_key   <api_key>                   Set Qlik API key")
@@ -256,18 +248,16 @@ def help():
 
 
 commands = {
-    "get": get,
+    "get_app": get_app,
     "get_space": get_space,
     "set": set,
     "rem": rem,
     "load": load,
     "pub": pub,
-    "get_items": get_items,
     "set_items": set_items,
     "pub_items": pub_items,
     "flag_items": flag_items,
     "unflag_items": unflag_items,
-    "get_objects": get_objects,
     "set_tenant": set_tenant,
     "set_tenant_api_key": set_tenant_api_key,
     "get_tenant": get_tenant,
