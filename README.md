@@ -20,10 +20,10 @@ qlik set_tenant https://{tenant}.{region}.qlikcloud.com
 qlik set_tenant_api_key <your-api-key>
 qlik get_tenant   # get current tenant URL and API key
 ```
+> **Important:** Always run `qlik` from your **project folder**, not from the CLI install directory from step 1.
+
 
 ### 3. Usage — Script
-
-> **Important:** Always run `qlik` from your **project folder**, not from the CLI install directory from step 1.
 
 ```bash
 qlik get_space "My Space"        # fetch all apps in space (script, master items, objects)
@@ -34,8 +34,6 @@ qlik pub_script "MyApp"          # publish to managed space
 ```
 
 ### 4. Usage — Master Items
-
-Master items are stored as JSON under `Apps/{appId}/{appName}/masteritems/`.
 
 ```bash
 qlik get_app "MyApp"             # pull current master items from shared space app
@@ -78,9 +76,10 @@ qlik pub_items "MyApp"           # publish shared space app to managed space app
 
 > **ID handling:** When creating a new master item, any `id` you set in the JSON will be overwritten by Qlik's own GUID. If you change an existing item's `id`, Qlik treats it as a brand-new item on the next `set_items` run (the old item remains untouched).
 
+> **Duplicate handling:** `set_items` matches by ID when present, falling back to title for new items (no ID yet). If the title fallback finds more than one match in the app, the run is aborted with an error listing the conflicting IDs — resolve the duplicates in `measures.json` / `dimensions.json` and re-run.
+
 > **Deletion:** Removing an item from the local JSON will not delete it from the app — `set_items` is additive/update-only by design. To delete a master item, do so directly in Qlik, then run `qlik get_app` to sync the local JSON.
 
-> **Duplicate handling:** `set_items` matches by ID when present, falling back to title for new items (no ID yet). If the title fallback finds more than one match in the app, the run is aborted with an error listing the conflicting IDs — resolve the duplicates in `measures.json` / `dimensions.json` and re-run.
 
 ### 5. Usage — Flag Items
 
@@ -92,7 +91,7 @@ qlik flag_items "MyApp"          # visually identify charts not using master ite
 qlik unflag_items "MyApp"        # restore backgrounds once done
 ```
 
-### 7. Claude Code Skills
+### 7. Claude Code Skills (Optional)
 
 Skills in `.claude/skills/` extend Claude Code:
 
