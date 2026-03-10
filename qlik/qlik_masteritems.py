@@ -157,9 +157,7 @@ class Qlik_Masteritems:
 
 
     def create_measures(self, measures: list) -> None:
-        """Creates or updates the given measures in the app. Skips and logs duplicates."""
-
-        duplicates_path = self.save_dir / "measures_duplicates.json"
+        """Creates or updates the given measures in the app. Raises on duplicates."""
 
         for measure in measures:
             args = dict(
@@ -181,17 +179,8 @@ class Qlik_Masteritems:
                 print(f"Updating: '{measure['title']}' ✅")
                 self.update_master_measure_expr(**args)
             else:
-                print(f"⚠️ WARNING: {len(matches)} duplicates found for '{measure['title']}' — skipping. Written to measures_duplicates.json")
-                raw = duplicates_path.read_text(encoding="utf-8").strip() if duplicates_path.exists() else ""
-                existing = json.loads(raw) if raw else []
-                existing_ids = {m["id"] for entry in existing for m in entry.get("qlik_matches", [])}
-                new_matches = [m for m in matches if m["id"] not in existing_ids]
-                if new_matches:
-                    existing.append({
-                        "source": measure,
-                        "qlik_matches": new_matches,
-                    })
-                    duplicates_path.write_text(json.dumps(existing, indent=4), encoding="utf-8")
+                ids = ", ".join(m["id"] for m in matches)
+                raise ValueError(f"Duplicate measures found for title '{measure['title']}' (IDs: {ids}) — please resolve in measures.json and try again.")
 
     def master_dimension_exists(self, title: str, id: str = None) -> list[dict]:
         """Returns a list of matching master dimensions as dicts. Empty list if none found, multiple entries if duplicates exist."""
@@ -297,9 +286,7 @@ class Qlik_Masteritems:
         self.app.do_save()
 
     def create_dimensions(self, dimensions: list) -> None:
-        """Creates or updates the given dimensions in the app. Skips and logs duplicates."""
-
-        duplicates_path = self.save_dir / "dimensions_duplicates.json"
+        """Creates or updates the given dimensions in the app. Raises on duplicates."""
 
         for dimension in dimensions:
             args = dict(
@@ -322,17 +309,8 @@ class Qlik_Masteritems:
                 print(f"Updating: '{dimension['title']}' ✅")
                 self.update_master_dimension_expr(**args)
             else:
-                print(f"⚠️ WARNING: {len(matches)} duplicates found for '{dimension['title']}' — skipping. Written to dimensions_duplicates.json")
-                raw = duplicates_path.read_text(encoding="utf-8").strip() if duplicates_path.exists() else ""
-                existing = json.loads(raw) if raw else []
-                existing_ids = {m["id"] for entry in existing for m in entry.get("qlik_matches", [])}
-                new_matches = [m for m in matches if m["id"] not in existing_ids]
-                if new_matches:
-                    existing.append({
-                        "source": dimension,
-                        "qlik_matches": new_matches,
-                    })
-                    duplicates_path.write_text(json.dumps(existing, indent=4), encoding="utf-8")
+                ids = ", ".join(m["id"] for m in matches)
+                raise ValueError(f"Duplicate dimensions found for title '{dimension['title']}' (IDs: {ids}) — please resolve in dimensions.json and try again.")
 
     def get_measures(self) -> list[dict]:
         """Fetches all measures from the app and returns them as a sorted list."""
@@ -759,13 +737,27 @@ Correct and run set_items again."""
 
         return total
 
+    def _load_local_items(self) -> tuple[list[dict], list[dict]]:
+        """Loads measures.json and dimensions.json from the save directory. Raises clearly if either file is missing."""
+        measures_path = self.save_dir / "measures.json"
+        dimensions_path = self.save_dir / "dimensions.json"
+
+        if not measures_path.exists():
+            raise FileNotFoundError(f"measures.json not found in {self.save_dir} — make sure the file is named exactly 'measures.json'.")
+        if not dimensions_path.exists():
+            raise FileNotFoundError(f"dimensions.json not found in {self.save_dir} — make sure the file is named exactly 'dimensions.json'.")
+
+        with open(measures_path, "r", encoding="utf-8") as f:
+            measures = json.load(f)
+        with open(dimensions_path, "r", encoding="utf-8") as f:
+            dimensions = json.load(f)
+
+        return measures, dimensions
+
     def get_items_changed(self) -> tuple[list[dict], list[dict]]:
         """Returns only the measures and dimensions that differ between local JSON files and the current Qlik app state."""
 
-        with open(self.save_dir / "measures.json", "r", encoding="utf-8") as f:
-            local_measures = json.load(f)
-        with open(self.save_dir / "dimensions.json", "r", encoding="utf-8") as f:
-            local_dimensions = json.load(f)
+        local_measures, local_dimensions = self._load_local_items()
 
         self._check_duplicate_ids(local_measures, "measures.json")
         self._check_duplicate_ids(local_dimensions, "dimensions.json")
