@@ -63,7 +63,7 @@ class QlikScript:
         url = f"{self.base_url}/items?resourceType=app&spaceType=shared&name={app_name}"
 
         if app_id:
-            url = f"{self.base_url}/items?resourceType=app&spaceType=shared&name={app_name}&resourceId={app_id}"
+            url = f"{self.base_url}/items?resourceType=app&spaceType=shared&resourceId={app_id}"
 
         response_data = self._get_all_paginated(url)
 
