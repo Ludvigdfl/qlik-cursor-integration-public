@@ -435,6 +435,155 @@ class Qlik_Masteritems:
         return dimensions_list
 
     
+    def get_object_items(self) -> list[dict]:
+        """Returns all chart objects across all sheets with their measures and dimensions.
+
+        Each entry contains the object ID, type, sheet title, and lists of dimensions/measures.
+        Each dimension/measure indicates whether it's a master item (via qLibraryId) or inline.
+        """
+
+        sheet_list = self.app.create_session_object({
+            "qInfo": {"qType": "SheetList"},
+            "qAppObjectListDef": {
+                "qType": "sheet",
+                "qData": {"title": "/qMetaDef/title"}
+            }
+        })
+
+        sheets = sheet_list.get_layout().qAppObjectList.qItems
+        results = []
+
+        for sheet_info in sheets:
+            sheet_id    = sheet_info.qInfo.qId
+            sheet_title = getattr(sheet_info.qData, "title", sheet_id)
+
+            sheet_obj    = self.app.get_object(sheet_id)
+            sheet_layout = sheet_obj.get_layout()
+            children     = sheet_layout.qChildList.qItems if sheet_layout.qChildList else []
+
+            for child in children:
+                obj_id   = child.qInfo.qId
+                obj_type = child.qInfo.qType
+
+                obj   = self.app.get_object(obj_id)
+                props = obj.get_properties()
+
+                hc = getattr(props, "qHyperCubeDef", None)
+                if hc is None:
+                    continue
+
+                dimensions = []
+                for dim in getattr(hc, "qDimensions", []):
+                    library_id = getattr(dim, "qLibraryId", None) or None
+                    if library_id:
+                        dimensions.append({"type": "master", "library_id": library_id})
+                    else:
+                        field_defs = getattr(dim.qDef, "qFieldDefs", [])
+                        dimensions.append({"type": "inline", "expression": field_defs[0] if field_defs else ""})
+
+                measures = []
+                for mea in getattr(hc, "qMeasures", []):
+                    library_id = getattr(mea, "qLibraryId", None) or None
+                    if library_id:
+                        measures.append({"type": "master", "library_id": library_id})
+                    else:
+                        expr = getattr(mea.qDef, "qDef", "")
+                        measures.append({"type": "inline", "expression": expr})
+
+                results.append({
+                    "id":          obj_id,
+                    "type":        obj_type,
+                    "sheet":       sheet_title,
+                    "dimensions":  dimensions,
+                    "measures":    measures,
+                    "components":  getattr(props, "components", []),
+                })
+        return results
+
+    def set_inline_object_background(self, color: str) -> list[str]:
+        """Highlights all objects with inline measures/dimensions by setting a background color.
+        Saves the original components for each object to chart_diffs.json before overwriting.
+
+        Args:
+            color: A hex color string, e.g. '#ffcccc'.
+
+        Returns:
+            List of object IDs that were updated.
+        """
+
+        items = self.get_object_items()
+
+        def has_inline(item: dict) -> bool:
+            return any(x["type"] == "inline" for x in item["dimensions"] + item["measures"])
+
+        inline_items = [item for item in items if has_inline(item)]
+
+        # Save originals so revert_inline_object_background can restore them
+        originals = {
+            item["id"]: {
+                "type":       item["type"],
+                "sheet":      item["sheet"],
+                "components": item["components"],
+            }
+            for item in inline_items
+        }
+        self.save_dir.mkdir(parents=True, exist_ok=True)
+        with open(self.save_dir / "chart_diffs.json", "w", encoding="utf-8") as f:
+            json.dump(originals, f, indent=4)
+
+        updated = []
+        for item in inline_items:
+            obj   = self.app.get_object(item["id"])
+            props = obj.get_properties()
+            props.components = [
+                {
+                    "key": "general",
+                    "background": {
+                        "mode": "color",
+                        "color": {"color": color, "index": -1}
+                    },
+                    "bgColor": {
+                        "color": {"index": -1, "color": color, "alpha": 1}
+                    }
+                }
+            ]
+            obj.set_properties(props)
+            updated.append(item["id"])
+            print(f"  Highlighted: [{item['type']}] {item['id']} on '{item['sheet']}'")
+
+        self.app.do_save()
+        print(f"\nHighlighted {len(updated)} object(s) — originals saved to chart_diffs.json")
+        return updated
+
+    def revert_inline_object_background(self) -> list[str]:
+        """Restores the original background components for all objects saved by set_inline_object_background.
+
+        Returns:
+            List of object IDs that were reverted.
+        """
+
+        diffs_path = self.save_dir / "chart_diffs.json"
+        if not diffs_path.exists():
+            print("No chart_diffs.json found — nothing to revert.")
+            return []
+
+        with open(diffs_path, "r", encoding="utf-8") as f:
+            originals = json.load(f)
+
+        reverted = []
+        for obj_id, meta in originals.items():
+            obj   = self.app.get_object(obj_id)
+            props = obj.get_properties()
+            props.components = meta["components"]
+            obj.set_properties(props)
+            reverted.append(obj_id)
+            print(f"  Reverted: [{meta['type']}] {obj_id} on '{meta['sheet']}'")
+
+        self.app.do_save()
+        diffs_path.unlink()
+        print(f"\nReverted {len(reverted)} object(s) — chart_diffs.json removed")
+        return reverted
+
     def _check_duplicate_ids(self, items: list[dict], file_name: str) -> None:
         """Raises ValueError if any items share the same non-null ID."""
         ids = [item["id"] for item in items if item.get("id")]
