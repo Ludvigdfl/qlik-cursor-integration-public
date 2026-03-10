@@ -20,21 +20,22 @@ Values take effect immediately for all subsequent commands. As a fallback, the C
 
 ## Commands
 
-Invoke via Bash: `PYTHONIOENCODING=utf-8 "$HOME/AppData/Local/Programs/Qlik_DEV/qlik/qlik.cmd" <command> <args>`
+Invoke via Bash: `qlik <command> <args>`
 
 | Command | Usage | Description |
 |---------|-------|-------------|
-| `get` | `qlik get <app_name> [<app_id>]` | Download app script, split into .qvs tab files |
-| `get_space` | `qlik get_space <space_name>` | Download scripts for all apps in a shared space |
-| `set` | `qlik set <app_name> [<app_id>]` | Validate and upload local .qvs files as app script |
-| `load` | `qlik load <app_name> [<app_id>]` | Trigger app reload with live log streaming |
-| `pub` | `qlik pub <app_name> [<app_id>]` | Publish shared space app to its managed space copy |
-| `rem` | `qlik rem <app_name> [<app_id>]` | Delete local script directory for the app |
-| `get_items` | `qlik get_items <app_name> [<app_id>]` | Download all master measures and dimensions → `masteritems/measures.json` and `dimensions.json` |
+| `get_space` | `qlik get_space <space_name>` | Download script, master items, and sheet objects for all apps in a shared space |
+| `get_app` | `qlik get_app <app_name> [<app_id>]` | Download script, master items, and sheet objects from a shared space app |
+| `set_script` | `qlik set_script <app_name> [<app_id>]` | Validate and upload local .qvs files as app script |
+| `load_script` | `qlik load_script <app_name> [<app_id>]` | Trigger app reload with live log streaming |
+| `pub_script` | `qlik pub_script <app_name> [<app_id>]` | Publish shared space app script to its managed space copy |
 | `set_items` | `qlik set_items <app_name> [<app_id>]` | Create/update master measures and dimensions from `measures.json` and `dimensions.json` |
+| `pub_items` | `qlik pub_items <app_name> [<app_id>]` | Publish shared space app to managed space app (use after updating master items) |
+| `flag_items` | `qlik flag_items <app_name> [<app_id>]` | Highlight all charts using non-master measures or dimensions in red |
+| `unflag_items` | `qlik unflag_items <app_name> [<app_id>]` | Restore background colors of all flagged charts |
 | `set_tenant` | `qlik set_tenant <url>` | Save tenant URL to config file |
 | `set_tenant_api_key` | `qlik set_tenant_api_key <key>` | Save API key to config file |
-| `get_tenant` | `qlik get_tenant` | Get current tenant URL and API key |
+| `get_tenant` | `qlik get_tenant` | Show current tenant URL and API key |
 | `help` | `qlik help` | List available commands |
 
 The optional `<app_id>` disambiguates when multiple apps share the same name.
@@ -44,22 +45,30 @@ The optional `<app_id>` disambiguates when multiple apps share the same name.
 ### Script
 
 ```
-qlik get "MyApp"          # 1. Download script tabs as .qvs files
+qlik get_app "MyApp"      # 1. Download script tabs as .qvs files
 # ... edit .qvs files ... # 2. Make changes locally
-qlik set "MyApp"          # 3. Validate & push script back to app
-qlik load "MyApp"         # 4. Reload the app (streams logs)
-qlik pub "MyApp"          # 5. Publish to managed space
+qlik set_script "MyApp"   # 3. Validate & push script back to app
+qlik load_script "MyApp"  # 4. Reload the app (streams logs)
+qlik pub_script "MyApp"   # 5. Publish to managed space
 ```
 
 ### Master Items
 
 ```
-qlik get_items "MyApp"    # 1. Download master measures + dimensions → masteritems/
-# ... edit JSON files ... # 2. Add/modify entries locally
+qlik get_app "MyApp"      # 1. Download master measures + dimensions → masteritems/
+# ... edit JSON files ... # 2. Add/modify entries in measures.json / dimensions.json
 qlik set_items "MyApp"    # 3. Create/update measures and dimensions in the app
+qlik pub_items "MyApp"    # 4. Publish to managed space
 ```
 
-`set_items` matches items by `id` first, then by `title`. If more than one item in the app shares the same title, the item is skipped and written to `measures_duplicates.json` / `dimensions_duplicates.json` for manual review.
+**set_items behaviour:**
+- Matches items by `id` first, falling back to `title` for new items (no id yet).
+- After `set_items`, `get_app` is run automatically so the local JSON reflects Qlik's assigned GUIDs.
+- Any `id` set manually for a new item will be overwritten by Qlik's own GUID.
+- Changing an existing item's `id` causes it to be treated as a brand-new item on the next run.
+- Removing an item from the JSON does **not** delete it from the app — `set_items` is additive/update-only. To delete, remove it in Qlik then run `qlik get_app` to sync.
+- If the title fallback finds more than one match in the app, the run is aborted with an error listing the conflicting IDs — resolve in `measures.json` / `dimensions.json` and re-run.
+- `measures.json` and `dimensions.json` must be named exactly as such — a clear error is raised if either file is missing.
 
 ## Local File Structure
 
@@ -75,10 +84,12 @@ Apps/
         1___TabName2.qvs
         2___TabName3.qvs
       masteritems/
-        measures.json         # Master measures (get_items / set_items)
-        dimensions.json       # Master dimensions (get_items / set_items)
-        measures_duplicates.json    # Written when duplicate measures are found
-        dimensions_duplicates.json  # Written when duplicate dimensions are found
+        measures.json         # Master measures (get_app / set_items)
+        dimensions.json       # Master dimensions (get_app / set_items)
+      Layout/
+        Sheets/
+          {SheetName}/
+            {objId}.json      # Sheet object definitions (get_app)
 ```
 
 **measures.json schema:**
@@ -102,15 +113,15 @@ Apps/
 
 When modifying Qlik scripts locally:
 
-1. Run `qlik get "AppName"` first to pull the current script.
-2. Edit the .qvs files in `scripts/{AppName}/{appId}/`.
+1. Run `qlik get_app "AppName"` first to pull the current script.
+2. Edit the .qvs files in `Apps/{appId}/{AppName}/scripts/`.
 3. Do NOT rename files or change the `{index}___` prefix unless reordering tabs.
-4. Do NOT add or remove the `///$tab` markers inside files - the CLI adds them when combining.
-5. Run `qlik set "AppName"` to validate syntax and push changes.
+4. Do NOT add or remove the `///$tab` markers inside files — the CLI adds them when combining.
+5. Run `qlik set_script "AppName"` to validate syntax and push changes.
 
 ## Important Notes
 
-- The `load` command streams logs in real-time and clears the terminal on each poll. It runs until reload completes or Ctrl+C is pressed.
-- The `pub` command requires the app to have been published at least once from the Qlik UI before CLI publishing works.
-- The `set` command validates script syntax via the API before publishing. Validation results are printed as JSON.
+- The `load_script` command streams logs in real-time and clears the terminal on each poll. It runs until reload completes or Ctrl+C is pressed.
+- The `pub_script` / `pub_items` commands require the app to have been published at least once from the Qlik UI before CLI publishing works.
+- The `set_script` command validates script syntax via the API before pushing. Validation results are printed as JSON.
 - All commands operate on **shared space** apps. Publishing copies to the corresponding managed space app.

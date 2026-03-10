@@ -37,38 +37,35 @@ def _masteritems_dir(App_Name: str, App_Id: str = None) -> tuple:
 
 
 
-def get(App_Name:str, App_Id:str = None):
+def get(App_Name: str, App_Id: str = None):
     """Get script from Qlik app, parse tabs, and save to files."""
     print(f"... Fetching ...")
     Qlik = QlikScript()
     Qlik.empty_script_directory(App_Name, App_Id)
-
     app_script        = Qlik.get_script(App_Name, App_Id)
     app_script_tabbed = Qlik.parse_script_tabs(app_script)
-
     Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name, App_Id)
 
 
-def get_space(Space_Name:str):
-    """Get script and master items from all apps in shared space."""
+def get_app(App_Name: str, App_Id: str = None):
+    """Get script, master items, and sheet objects from Qlik app."""
+    get(App_Name, App_Id)
+    get_items(App_Name, App_Id, silent=True)
+    get_objects(App_Name, App_Id)
+
+
+def get_space(Space_Name: str):
+    """Get script, master items, and sheet objects for all apps in a shared space."""
     Qlik = QlikScript()
     apps = Qlik.get_apps_in_space(Space_Name)
     print(f"... Fetching {len(apps)} app(s) ...")
     for app in apps:
-        App_Name = app["name"]
-        App_Id = app["resourceId"]
-        Qlik.empty_script_directory(App_Name, App_Id)
-
-        app_script        = Qlik.get_script(App_Name, App_Id)
-        app_script_tabbed = Qlik.parse_script_tabs(app_script)
-
-        Qlik.save_tabs_as_qvs_files(app_script_tabbed, App_Name, App_Id)
-        get_items(App_Name, App_Id)
-
-    print(f"\n✅ Space {Space_Name} fetched successfully")
+        get_app(app["name"], app["resourceId"])
+        print()
+    print(f"Space {Space_Name} fetched successfully")
 
 
-def set(App_Name:str, App_Id:str = None):
+def set_script(App_Name:str, App_Id:str = None):
     """Set script in Qlik app with validation."""
     Qlik = QlikScript()
     script_tabbed = Qlik.get_app_script_tabbed(App_Name, App_Id)
@@ -79,19 +76,16 @@ def set(App_Name:str, App_Id:str = None):
     print(f"{App_Name} script set successfully")
 
 
-def rem(App_Name:str, App_Id:str = None):
-    """Empty the script directory."""
-    Qlik = QlikScript()
-    Qlik.empty_script_directory(App_Name, App_Id)
 
-
-def pub(App_Name:str, App_Id:str = None):
+def pub_script(App_Name:str, App_Id:str = None):
     """Publish app in Shared Space to Managed Space."""
     Qlik = QlikScript()
     Qlik.publish_app(App_Name, App_Id)
 
-def get_items(App_Name: str, App_Id: str = None):
+def get_items(App_Name: str, App_Id: str = None, silent: bool = False):
     """Get master measures and dimensions from Qlik app and save to masteritems/measures.json and dimensions.json."""
+    if not silent:
+        print(f"... Fetching ...")
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
     measures = Qlik.get_measures()
@@ -134,7 +128,35 @@ def pub_items(App_Name: str, App_Id: str = None):
     Qlik.close()
 
 
-def load(App_Name:str, App_Id:str = None):
+def flag_items(App_Name: str, App_Id: str = None):
+    """Highlight all chart objects with inline (non-master) measures or dimensions by setting a background color.
+    Originals are saved to items_diff/diff.json so unflag_items can restore them."""
+    color = "#ff6666"
+    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
+    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    Qlik.set_object_background(color)
+    Qlik.close()
+
+
+def unflag_items(App_Name: str, App_Id: str = None):
+    """Restore the original background colors of objects highlighted by flag_items."""
+    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
+    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    Qlik.revert_object_background()
+    Qlik.close()
+
+
+def get_objects(App_Name: str, App_Id: str = None):
+    """Fetch all sheet objects for an app and save each as a JSON file under Layout/Sheets/<sheet>/<obj_id>.json."""
+    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
+    objects_root = save_dir.parent / "Layout" / "Sheets"
+    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    total = Qlik.get_objects(objects_root)
+    Qlik.close()
+    print(f"✅ {App_Name} - objects")
+
+
+def load_script(App_Name:str, App_Id:str = None):
     """Reload app and stream reload logs."""
     Qlik = QlikScript()
     reload_id = Qlik.reload_app(App_Name, App_Id)
@@ -201,33 +223,33 @@ def help():
     print("   Command                   <arg1>         [<arg2>]      Description")
     print("-----------------------------------------------------------------------------------------------------------------------------")
 
-    print("🟢 qlik get_space            <space_name>                Get script, and master measures and dimensions from all apps from shared <space_name>")
-    print("")
-    print("🟢 qlik get                  <app_name>     [<app_id>]   Get script from the Qlik shared space <app> [<optionally provide the app_id if multiple apps share the same name>]")
-    print("🟢 qlik set                  <app_name>     [<app_id>]   Set script for the Qlik shared space <app> ")
-    print("🟢 qlik load                 <app_name>     [<app_id>]   Reload the Qlik shared space <app>")
-    print("🟢 qlik pub                  <app_name>     [<app_id>]   Publish the Qlik shared space <app> to the Qlik managed space app")
-    print("🟢 qlik rem                  <app_name>     [<app_id>]   Empty the local script directory for <app>")
-    print("")
-    print("🟢 qlik get_items            <app_name>     [<app_id>]   Get all master measures and dimensions from shared space <app> and save to measures.json and dimensions.json")
-    print("🟢 qlik set_items            <app_name>     [<app_id>]   Set all master measures and dimensions in shared space <app> from measures.json and dimensions.json")
-    print("🟢 qlik pub_items            <app_name>     [<app_id>]   Publish shared space <app> to managed space app (use after updating master items)")
-    print("")
     print("🟢 qlik set_tenant           <tenant_url>                Set Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
     print("🟢 qlik set_tenant_api_key   <api_key>                   Set Qlik API key")
     print("🟢 qlik get_tenant                                       Check the current tenant URL and API key in use")
-
+    print("")
+    print("🟢 qlik get_space            <space_name>                Get script, master items, and sheet objects for all apps in a shared <space_name>")
+    print("🟢 qlik get_app              <app_name>     [<app_id>]   Get script, master items, and sheet objects from shared space <app>")
+    print("")
+    print("🟢 qlik set_script           <app_name>     [<app_id>]   Set script for the Qlik shared space <app> ")
+    print("🟢 qlik load_script          <app_name>     [<app_id>]   Reload the Qlik shared space <app>")
+    print("🟢 qlik pub_script           <app_name>     [<app_id>]   Publish the Qlik shared space <app> to the Qlik managed space app")
+    print("")
+    print("🟢 qlik set_items            <app_name>     [<app_id>]   Set all master measures and dimensions in shared space <app> from measures.json and dimensions.json")
+    print("🟢 qlik pub_items            <app_name>     [<app_id>]   Publish shared space <app> to managed space app (use after updating master items)")
+    print("")
+    print("🟢 qlik flag_items           <app_name>     [<app_id>]   Highlight all charts using non-master measures or dimensions in red.")
+    print("🟢 qlik unflag_items         <app_name>     [<app_id>]   Restore background colors of all charts.")
 
 commands = {
-    "get": get,
+    "get_app": get_app,
     "get_space": get_space,
-    "set": set,
-    "rem": rem,
-    "load": load,
-    "pub": pub,
-    "get_items": get_items,
+    "set_script": set_script,
+    "load_script": load_script,
+    "pub_script": pub_script,
     "set_items": set_items,
     "pub_items": pub_items,
+    "flag_items": flag_items,
+    "unflag_items": unflag_items,
     "set_tenant": set_tenant,
     "set_tenant_api_key": set_tenant_api_key,
     "get_tenant": get_tenant,

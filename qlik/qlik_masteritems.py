@@ -157,9 +157,7 @@ class Qlik_Masteritems:
 
 
     def create_measures(self, measures: list) -> None:
-        """Creates or updates the given measures in the app. Skips and logs duplicates."""
-
-        duplicates_path = self.save_dir / "measures_duplicates.json"
+        """Creates or updates the given measures in the app. Raises on duplicates."""
 
         for measure in measures:
             args = dict(
@@ -181,17 +179,8 @@ class Qlik_Masteritems:
                 print(f"Updating: '{measure['title']}' ✅")
                 self.update_master_measure_expr(**args)
             else:
-                print(f"⚠️ WARNING: {len(matches)} duplicates found for '{measure['title']}' — skipping. Written to measures_duplicates.json")
-                raw = duplicates_path.read_text(encoding="utf-8").strip() if duplicates_path.exists() else ""
-                existing = json.loads(raw) if raw else []
-                existing_ids = {m["id"] for entry in existing for m in entry.get("qlik_matches", [])}
-                new_matches = [m for m in matches if m["id"] not in existing_ids]
-                if new_matches:
-                    existing.append({
-                        "source": measure,
-                        "qlik_matches": new_matches,
-                    })
-                    duplicates_path.write_text(json.dumps(existing, indent=4), encoding="utf-8")
+                ids = ", ".join(m["id"] for m in matches)
+                raise ValueError(f"Duplicate measures found for title '{measure['title']}' (IDs: {ids}) — please resolve in measures.json and try again.")
 
     def master_dimension_exists(self, title: str, id: str = None) -> list[dict]:
         """Returns a list of matching master dimensions as dicts. Empty list if none found, multiple entries if duplicates exist."""
@@ -297,9 +286,7 @@ class Qlik_Masteritems:
         self.app.do_save()
 
     def create_dimensions(self, dimensions: list) -> None:
-        """Creates or updates the given dimensions in the app. Skips and logs duplicates."""
-
-        duplicates_path = self.save_dir / "dimensions_duplicates.json"
+        """Creates or updates the given dimensions in the app. Raises on duplicates."""
 
         for dimension in dimensions:
             args = dict(
@@ -322,17 +309,8 @@ class Qlik_Masteritems:
                 print(f"Updating: '{dimension['title']}' ✅")
                 self.update_master_dimension_expr(**args)
             else:
-                print(f"⚠️ WARNING: {len(matches)} duplicates found for '{dimension['title']}' — skipping. Written to dimensions_duplicates.json")
-                raw = duplicates_path.read_text(encoding="utf-8").strip() if duplicates_path.exists() else ""
-                existing = json.loads(raw) if raw else []
-                existing_ids = {m["id"] for entry in existing for m in entry.get("qlik_matches", [])}
-                new_matches = [m for m in matches if m["id"] not in existing_ids]
-                if new_matches:
-                    existing.append({
-                        "source": dimension,
-                        "qlik_matches": new_matches,
-                    })
-                    duplicates_path.write_text(json.dumps(existing, indent=4), encoding="utf-8")
+                ids = ", ".join(m["id"] for m in matches)
+                raise ValueError(f"Duplicate dimensions found for title '{dimension['title']}' (IDs: {ids}) — please resolve in dimensions.json and try again.")
 
     def get_measures(self) -> list[dict]:
         """Fetches all measures from the app and returns them as a sorted list."""
@@ -435,6 +413,229 @@ class Qlik_Masteritems:
         return dimensions_list
 
     
+    def get_object_items(self) -> list[dict]:
+        """Returns all chart objects across all sheets with their measures and dimensions.
+
+        Each entry contains the object ID, type, sheet title, and lists of dimensions/measures.
+        Each dimension/measure indicates whether it's a master item: qLibraryId (master) or inline (inline).
+        """
+
+        results = []
+
+        for sheet_info in self._get_sheets():
+            sheet_id    = sheet_info.qInfo.qId
+            sheet_title = getattr(sheet_info.qData, "title", sheet_id)
+
+            sheet_obj    = self.app.get_object(sheet_id)
+            sheet_layout = sheet_obj.get_layout()
+            children     = sheet_layout.qChildList.qItems if sheet_layout.qChildList else []
+
+            for child in children:
+                obj_id   = child.qInfo.qId
+                obj_type = child.qInfo.qType
+
+                obj   = self.app.get_object(obj_id)
+                props = obj.get_properties()
+
+                def _parse_hc(hc):
+                    dims, meas = [], []
+                    for dim in getattr(hc, "qDimensions", []):
+                        library_id = getattr(dim, "qLibraryId", None) or None
+                        if library_id:
+                            dims.append({"type": "master", "library_id": library_id})
+                        else:
+                            field_defs = getattr(dim.qDef, "qFieldDefs", [])
+                            dims.append({"type": "inline", "expression": field_defs[0] if field_defs else ""})
+                    for mea in getattr(hc, "qMeasures", []):
+                        library_id = getattr(mea, "qLibraryId", None) or None
+                        if library_id:
+                            meas.append({"type": "master", "library_id": library_id})
+                        else:
+                            expr = getattr(mea.qDef, "qDef", "")
+                            meas.append({"type": "inline", "expression": expr})
+                    return dims, meas
+
+                hc = getattr(props, "qHyperCubeDef", None)
+                if hc is not None:
+                    dimensions, measures = _parse_hc(hc)
+                else:
+                    # Map objects: qUndoExclude is a plain dict with gaLayers,
+                    # each layer is also a dict containing its own qHyperCubeDef dict
+                    dimensions, measures = [], []
+                    undo = getattr(props, "qUndoExclude", None) or {}
+                    for layer in (undo.get("gaLayers", []) if isinstance(undo, dict) else []):
+                        layer_hc = layer.get("qHyperCubeDef") if isinstance(layer, dict) else None
+                        if layer_hc is None:
+                            continue
+                        for dim in layer_hc.get("qDimensions", []):
+                            library_id = dim.get("qLibraryId") or None
+                            if library_id:
+                                dimensions.append({"type": "master", "library_id": library_id})
+                            else:
+                                field_defs = dim.get("qDef", {}).get("qFieldDefs", [])
+                                dimensions.append({"type": "inline", "expression": field_defs[0] if field_defs else ""})
+                        for mea in layer_hc.get("qMeasures", []):
+                            library_id = mea.get("qLibraryId") or None
+                            if library_id:
+                                measures.append({"type": "master", "library_id": library_id})
+                            else:
+                                measures.append({"type": "inline", "expression": mea.get("qDef", {}).get("qDef", "")})
+                    if not dimensions and not measures:
+                        continue
+
+                ext_props = getattr(props, "props", None)
+                results.append({
+                    "id":          obj_id,
+                    "type":        obj_type,
+                    "sheet_id":    sheet_id,
+                    "sheet":       sheet_title,
+                    "dimensions":  dimensions,
+                    "measures":    measures,
+                    "components":  getattr(props, "components", []),
+                    "table_bg":    ext_props.get("tableBackgroundColor") if isinstance(ext_props, dict) else None,
+                })
+        return results
+
+    def set_object_background(self, color: str) -> list[str]:
+        """Highlights all objects with inline measures/dimensions by setting a background color.
+        Saves the original components for each object to items_diff/diff.json before overwriting.
+
+        Args:
+            color: A hex color string, e.g. '#ffcccc'.
+
+        Returns:
+            List of object IDs that were updated.
+        """
+
+        items = self.get_object_items()
+
+        def has_inline(item: dict) -> bool:
+            return any(x["type"] == "inline" for x in item["dimensions"] + item["measures"])
+
+        inline_items = [item for item in items if has_inline(item)]
+
+        # Identify published sheets among those containing inline objects (cache objects to avoid redundant calls)
+        published_sheet_objs = []
+        published_sheet_ids  = []
+        for sheet_id in {item["sheet_id"] for item in inline_items}:
+            sheet_obj = self.app.get_object(sheet_id)
+            if self._is_published(sheet_obj.get_layout()):
+                published_sheet_objs.append(sheet_obj)
+                published_sheet_ids.append(sheet_id)
+
+        self._unpublish_sheets(published_sheet_objs)
+
+        # Save originals so revert_inline_object_background can restore them
+        originals = {
+            item["id"]: {
+                "type":       item["type"],
+                "sheet":      item["sheet"],
+                "components": item["components"],
+                "table_bg":   item["table_bg"],
+            }
+            for item in inline_items
+        }
+        diff_path = self._items_diff_path
+        diff_path.parent.mkdir(parents=True, exist_ok=True)
+        if diff_path.exists():
+            print("Layout/Sheets/items_diff/diff.json already exists — skipping save to preserve originals. Run revert_chart_diffs first.")
+        else:
+            with open(diff_path, "w", encoding="utf-8") as f:
+                json.dump({"originals": originals, "published_sheet_ids": published_sheet_ids}, f, indent=4)
+
+        updated = []
+        for item in inline_items:
+            obj   = self.app.get_object(item["id"])
+            props = obj.get_properties()
+            props.components = [
+                {
+                    "key": "general",
+                    "background": {
+                        "mode": "color",
+                        "color": {"color": color, "index": -1}
+                    },
+                    "bgColor": {
+                        "color": {"index": -1, "color": color, "alpha": 1}
+                    }
+                }
+            ]
+            ext_props = getattr(props, "props", None)
+            if isinstance(ext_props, dict) and "tableBackgroundColor" in ext_props:
+                ext_props["tableBackgroundColor"] = color
+            obj.set_properties(props)
+            updated.append(item)
+
+        self.app.do_save()
+        self._publish_sheets(published_sheet_objs)
+
+        current_sheet = None
+        for item in updated:
+            if item["sheet"] != current_sheet:
+                if current_sheet is not None:
+                    print()
+                print(item["sheet"])
+                current_sheet = item["sheet"]
+            print(f" Highlighting: [{item['type']}] {item['id']}")
+
+        print(f"\nHighlighted {len(updated)} object(s)")
+        return updated
+
+    def revert_object_background(self) -> list[str]:
+        """Restores the original background components for all objects saved by set_inline_object_background.
+
+        Returns:
+            List of object IDs that were reverted.
+        """
+
+        diffs_path = self._items_diff_path
+        if not diffs_path.exists():
+            print("No Layout/Sheets/items_diff/diff.json found — nothing to revert.")
+            return []
+
+        with open(diffs_path, "r", encoding="utf-8") as f:
+            saved = json.load(f)
+
+        originals = saved["originals"] if "originals" in saved else saved
+        original_obj_ids = set(originals.keys())
+
+        # Check current sheet state at unflag-time (not what was saved at flag-time).
+        # The user may have toggled sheets public/private between the two operations.
+        sheets_to_unpublish = []
+        existing_ids = set()
+        for sheet_info in self._get_sheets():
+            sheet_id  = sheet_info.qInfo.qId
+            sheet_obj = self.app.get_object(sheet_id)
+            layout    = sheet_obj.get_layout()
+            child_ids = {child.qInfo.qId for child in (layout.qChildList.qItems or [])}
+            existing_ids |= child_ids
+            if self._is_published(layout) and (child_ids & original_obj_ids):
+                sheets_to_unpublish.append(sheet_obj)
+
+        self._unpublish_sheets(sheets_to_unpublish)
+
+        reverted = []
+        for obj_id, meta in originals.items():
+            if obj_id not in existing_ids:
+                print(f"  Skipped (deleted): {obj_id} on '{meta['sheet']}'")
+                continue
+            obj   = self.app.get_object(obj_id)
+            props = obj.get_properties()
+            props.components = meta["components"]
+            if meta.get("table_bg") is not None:
+                ext_props = getattr(props, "props", None)
+                if isinstance(ext_props, dict) and "tableBackgroundColor" in ext_props:
+                    ext_props["tableBackgroundColor"] = meta["table_bg"]
+            obj.set_properties(props)
+            reverted.append(obj_id)
+            print(f"  Reverted: [{meta['type']}] {obj_id} on '{meta['sheet']}'")
+
+        self.app.do_save()
+        diffs_path.unlink()
+        diffs_path.parent.rmdir()
+        print(f"\nReverted {len(reverted)} object(s)")
+        self._publish_sheets(sheets_to_unpublish)
+        return reverted
+
     def _check_duplicate_ids(self, items: list[dict], file_name: str) -> None:
         """Raises ValueError if any items share the same non-null ID."""
         ids = [item["id"] for item in items if item.get("id")]
@@ -450,13 +651,113 @@ Each item must have a unique ID when publishing to qlik.
 Correct and run set_items again."""
             )
 
+    @property
+    def _items_diff_path(self) -> Path:
+        return self.save_dir.parent / "Layout" / "Sheets" / "items_diff" / "diff.json"
+
+    @staticmethod
+    def _is_published(layout) -> bool:
+        return getattr(getattr(layout, "qMeta", None), "published", False)
+
+    def _get_sheets(self):
+        """Returns all sheet items from the app's SheetList."""
+        sheet_list = self.app.create_session_object({
+            "qInfo": {"qType": "SheetList"},
+            "qAppObjectListDef": {
+                "qType": "sheet",
+                "qData": {"title": "/qMetaDef/title"}
+            }
+        })
+        return sheet_list.get_layout().qAppObjectList.qItems
+
+    def _unpublish_sheets(self, sheet_objs: list) -> None:
+        """Temporarily unpublish a list of sheet objects to allow editing."""
+        if not sheet_objs:
+            return
+        print(f"Temporarily unpublishing {len(sheet_objs)} published sheet(s) to allow editing...")
+        for obj in sheet_objs:
+            obj.un_publish()
+
+    def _publish_sheets(self, sheet_objs: list) -> None:
+        """Re-publish a list of sheet objects."""
+        if not sheet_objs:
+            return
+        print(f"Re-publishing {len(sheet_objs)} sheet(s)...")
+        for obj in sheet_objs:
+            obj.publish()
+
+    @staticmethod
+    def _sdk_to_dict(obj):
+        """Recursively convert an SDK model object to a plain dict/list."""
+        if isinstance(obj, dict):
+            return {k: Qlik_Masteritems._sdk_to_dict(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [Qlik_Masteritems._sdk_to_dict(i) for i in obj]
+        if hasattr(obj, "__dict__"):
+            return {k: Qlik_Masteritems._sdk_to_dict(v) for k, v in vars(obj).items() if not k.startswith("_")}
+        return obj
+
+    def get_objects(self, objects_root: Path) -> int:
+        """Fetch all sheet objects and save each as a JSON file.
+
+        Files are written to:
+            objects_root / <sanitized_sheet_title> / <obj_id>.json
+
+        The caller (CLI) is responsible for constructing objects_root as
+            {project_root}/{space}/{app}/{appId}/Layout/Sheets
+
+        Returns the total number of objects written.
+        """
+
+        total = 0
+
+        for sheet_info in self._get_sheets():
+            sheet_id    = sheet_info.qInfo.qId
+            sheet_title = getattr(sheet_info.qData, "title", None) or sheet_id
+            safe_title  = "".join(c if c.isalnum() or c in " _-" else "_" for c in sheet_title).strip()
+
+            sheet_dir = objects_root / safe_title
+            sheet_dir.mkdir(parents=True, exist_ok=True)
+
+            sheet_obj    = self.app.get_object(sheet_id)
+            sheet_layout = sheet_obj.get_layout()
+            children     = sheet_layout.qChildList.qItems if sheet_layout.qChildList else []
+
+            for child in children:
+                obj_id = child.qInfo.qId
+                obj    = self.app.get_object(obj_id)
+                layout = obj.get_layout()
+                data   = self._sdk_to_dict(layout)
+
+                out_path = sheet_dir / f"{obj_id}.json"
+                with open(out_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+                total += 1
+
+
+        return total
+
+    def _load_local_items(self) -> tuple[list[dict], list[dict]]:
+        """Loads measures.json and dimensions.json from the save directory. Raises clearly if either file is missing."""
+        measures_path = self.save_dir / "measures.json"
+        dimensions_path = self.save_dir / "dimensions.json"
+
+        if not measures_path.exists():
+            raise FileNotFoundError(f"measures.json not found in {self.save_dir} — make sure the file is named exactly 'measures.json'.")
+        if not dimensions_path.exists():
+            raise FileNotFoundError(f"dimensions.json not found in {self.save_dir} — make sure the file is named exactly 'dimensions.json'.")
+
+        with open(measures_path, "r", encoding="utf-8") as f:
+            measures = json.load(f)
+        with open(dimensions_path, "r", encoding="utf-8") as f:
+            dimensions = json.load(f)
+
+        return measures, dimensions
+
     def get_items_changed(self) -> tuple[list[dict], list[dict]]:
         """Returns only the measures and dimensions that differ between local JSON files and the current Qlik app state."""
 
-        with open(self.save_dir / "measures.json", "r", encoding="utf-8") as f:
-            local_measures = json.load(f)
-        with open(self.save_dir / "dimensions.json", "r", encoding="utf-8") as f:
-            local_dimensions = json.load(f)
+        local_measures, local_dimensions = self._load_local_items()
 
         self._check_duplicate_ids(local_measures, "measures.json")
         self._check_duplicate_ids(local_dimensions, "dimensions.json")

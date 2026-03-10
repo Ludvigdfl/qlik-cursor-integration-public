@@ -26,22 +26,11 @@ qlik get_tenant   # get current tenant URL and API key
 > **Important:** Always run `qlik` from your **project folder**, not from the CLI install directory from step 1.
 
 ```bash
-qlik get "MyApp"                 # download app script as .qvs files
-qlik get_space "space name"      # get all apps in space
-qlik set "MyApp"                 # validate & push changes back
-qlik load "MyApp"                # reload the app (streams logs)
-qlik pub "MyApp"                 # publish to managed space
-qlik rem "MyApp"                 # delete local script directory
-```
-
-**Typical workflow:**
-
-```bash
-qlik get "MyApp"                 # pull script into local .qvs files
+qlik get_space "My Space"        # fetch all apps in space (script, master items, objects)
 # edit locally …
-qlik set "MyApp"                 # push changes back
-qlik load "MyApp"                # reload to verify
-qlik pub "MyApp"                 # publish to managed space
+qlik set_script "MyApp"          # push changes back
+qlik load_script "MyApp"         # reload to verify
+qlik pub_script "MyApp"          # publish to managed space
 ```
 
 ### 4. Usage — Master Items
@@ -49,15 +38,7 @@ qlik pub "MyApp"                 # publish to managed space
 Master items are stored as JSON under `Apps/{appId}/{appName}/masteritems/`.
 
 ```bash
-qlik get_items "MyApp"           # pull measures + dimensions → masteritems/
-qlik set_items "MyApp"           # push (create/update) measures + dimensions from masteritems/
-qlik pub_items "MyApp"           # publish shared space app → managed space app
-```
-
-**Typical workflow:**
-
-```bash
-qlik get_items "MyApp"           # pull current master items from shared space app
+qlik get_app "MyApp"             # pull current master items from shared space app
 # edit measures.json / dimensions.json locally …
 qlik set_items "MyApp"           # push back to shared space app
 qlik pub_items "MyApp"           # publish shared space app to managed space app
@@ -95,19 +76,33 @@ qlik pub_items "MyApp"           # publish shared space app to managed space app
 ]
 ```
 
-> **Duplicate handling:** if the app contains more than one master item with the same title, `set_items` will skip that item and write the conflicting entries to `measures_duplicates.json` / `dimensions_duplicates.json` for manual review.
+> **ID handling:** When creating a new master item, any `id` you set in the JSON will be overwritten by Qlik's own GUID. If you change an existing item's `id`, Qlik treats it as a brand-new item on the next `set_items` run (the old item remains untouched).
 
-### 5. Claude Code Skills
+> **Deletion:** Removing an item from the local JSON will not delete it from the app — `set_items` is additive/update-only by design. To delete a master item, do so directly in Qlik, then run `qlik get_app` to sync the local JSON.
+
+> **Duplicate handling:** `set_items` matches by ID when present, falling back to title for new items (no ID yet). If the title fallback finds more than one match in the app, the run is aborted with an error listing the conflicting IDs — resolve the duplicates in `measures.json` / `dimensions.json` and re-run.
+
+### 5. Usage — Flag Items
+
+Highlights chart objects using inline (non-master) measures or dimensions — useful for auditing before migrating expressions to master items.
+
+```bash
+qlik flag_items "MyApp"          # visually identify charts not using master items
+# review flagged charts in Qlik and update expressions to use master items …
+qlik unflag_items "MyApp"        # restore backgrounds once done
+```
+
+### 7. Claude Code Skills
 
 Skills in `.claude/skills/` extend Claude Code:
 
 | Skill | Purpose |
 |-------|---------|
-| **qlik-cli** | Lets Claude invoke the CLI commands (`get`, `set`, `load`, `pub`, `set_tenant`, `get_tenant`, …) on your behalf and manage the full script workflow from within the conversation. |
+| **qlik-cli** | Lets Claude invoke the CLI commands (`get`, `set_script`, `load_script`, `pub_script`, `set_tenant`, `get_tenant`, …) on your behalf and manage the full script workflow from within the conversation. |
 
 Skills can also be globally installed in `~/.claude/skills/` to be available in any project.
 
-### 6. Install Syntax Highlighting (Optional)
+### 8. Install Syntax Highlighting (Optional)
 
 1. Open Cursor
 2. Go to **Extensions** (or press `Ctrl+Shift+X`)
@@ -115,6 +110,6 @@ Skills can also be globally installed in `~/.claude/skills/` to be available in 
 4. Select: `qlik highlight/gimly81.qlik-0.5.0.vsix`
 5. Restart Cursor
 
-### 7. Install Filename Highlighting (Optional)
+### 9. Install Filename Highlighting (Optional)
 
 Install VSCode Icons Theme (`vscode-icons-team.vscode-icons`) and activate it to display Qlik Sense icons for `.qvs` files.
