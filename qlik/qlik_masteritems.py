@@ -520,7 +520,7 @@ class Qlik_Masteritems:
 
     def set_object_background(self, color: str) -> list[str]:
         """Highlights all objects with inline measures/dimensions by setting a background color.
-        Saves the original components for each object to chart_diffs.json before overwriting.
+        Saves the original components for each object to items_diff/diff.json before overwriting.
 
         Args:
             color: A hex color string, e.g. '#ffcccc'.
@@ -557,10 +557,10 @@ class Qlik_Masteritems:
             }
             for item in inline_items
         }
-        diff_path = self.save_dir.parent / "chart_diff" / "diff.json"
+        diff_path = self.save_dir.parent / "Layout" / "Sheets" / "items_diff" / "diff.json"
         diff_path.parent.mkdir(parents=True, exist_ok=True)
         if diff_path.exists():
-            print("chart_diff/diff.json already exists — skipping save to preserve originals. Run revert_chart_diffs first.")
+            print("Layout/Sheets/items_diff/diff.json already exists — skipping save to preserve originals. Run revert_chart_diffs first.")
         else:
             with open(diff_path, "w", encoding="utf-8") as f:
                 json.dump({"originals": originals, "published_sheet_ids": published_sheet_ids}, f, indent=4)
@@ -609,9 +609,9 @@ class Qlik_Masteritems:
             List of object IDs that were reverted.
         """
 
-        diffs_path = self.save_dir.parent / "chart_diff" / "diff.json"
+        diffs_path = self.save_dir.parent / "Layout" / "Sheets" / "items_diff" / "diff.json"
         if not diffs_path.exists():
-            print("No chart_diff/diff.json found — nothing to revert.")
+            print("No Layout/Sheets/items_diff/diff.json found — nothing to revert.")
             return []
 
         with open(diffs_path, "r", encoding="utf-8") as f:
@@ -652,6 +652,7 @@ class Qlik_Masteritems:
 
         self.app.do_save()
         diffs_path.unlink()
+        diffs_path.parent.rmdir()
         print(f"\nReverted {len(reverted)} object(s)")
         self._publish_sheets(published_sheet_objs)
         return reverted

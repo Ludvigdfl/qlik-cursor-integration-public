@@ -65,7 +65,7 @@ def get_space(Space_Name: str):
     print(f"Space {Space_Name} fetched successfully")
 
 
-def set(App_Name:str, App_Id:str = None):
+def set_script(App_Name:str, App_Id:str = None):
     """Set script in Qlik app with validation."""
     Qlik = QlikScript()
     script_tabbed = Qlik.get_app_script_tabbed(App_Name, App_Id)
@@ -76,13 +76,8 @@ def set(App_Name:str, App_Id:str = None):
     print(f"{App_Name} script set successfully")
 
 
-def rem(App_Name:str, App_Id:str = None):
-    """Empty the script directory."""
-    Qlik = QlikScript()
-    Qlik.empty_script_directory(App_Name, App_Id)
 
-
-def pub(App_Name:str, App_Id:str = None):
+def pub_script(App_Name:str, App_Id:str = None):
     """Publish app in Shared Space to Managed Space."""
     Qlik = QlikScript()
     Qlik.publish_app(App_Name, App_Id)
@@ -135,7 +130,7 @@ def pub_items(App_Name: str, App_Id: str = None):
 
 def flag_items(App_Name: str, App_Id: str = None):
     """Highlight all chart objects with inline (non-master) measures or dimensions by setting a background color.
-    Originals are saved to chart_diffs.json so unflag_items can restore them."""
+    Originals are saved to items_diff/diff.json so unflag_items can restore them."""
     color = "#ff6666"
     app_id, save_dir = _masteritems_dir(App_Name, App_Id)
     Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
@@ -161,7 +156,7 @@ def get_objects(App_Name: str, App_Id: str = None):
     print(f"✅ {App_Name} - objects")
 
 
-def load(App_Name:str, App_Id:str = None):
+def load_script(App_Name:str, App_Id:str = None):
     """Reload app and stream reload logs."""
     Qlik = QlikScript()
     reload_id = Qlik.reload_app(App_Name, App_Id)
@@ -228,32 +223,29 @@ def help():
     print("   Command                   <arg1>         [<arg2>]      Description")
     print("-----------------------------------------------------------------------------------------------------------------------------")
 
+    print("🟢 qlik set_tenant           <tenant_url>                Set Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
+    print("🟢 qlik set_tenant_api_key   <api_key>                   Set Qlik API key")
+    print("🟢 qlik get_tenant                                       Check the current tenant URL and API key in use")
+    print("")
     print("🟢 qlik get_space            <space_name>                Get script, master items, and sheet objects for all apps in a shared <space_name>")
     print("🟢 qlik get_app              <app_name>     [<app_id>]   Get script, master items, and sheet objects from shared space <app>")
     print("")
-    print("🟢 qlik set                  <app_name>     [<app_id>]   Set script for the Qlik shared space <app> ")
-    print("🟢 qlik load                 <app_name>     [<app_id>]   Reload the Qlik shared space <app>")
-    print("🟢 qlik pub                  <app_name>     [<app_id>]   Publish the Qlik shared space <app> to the Qlik managed space app")
-    print("🟢 qlik rem                  <app_name>     [<app_id>]   Empty the local script directory for <app>")
+    print("🟢 qlik set_script           <app_name>     [<app_id>]   Set script for the Qlik shared space <app> ")
+    print("🟢 qlik load_script          <app_name>     [<app_id>]   Reload the Qlik shared space <app>")
+    print("🟢 qlik pub_script           <app_name>     [<app_id>]   Publish the Qlik shared space <app> to the Qlik managed space app")
     print("")
     print("🟢 qlik set_items            <app_name>     [<app_id>]   Set all master measures and dimensions in shared space <app> from measures.json and dimensions.json")
     print("🟢 qlik pub_items            <app_name>     [<app_id>]   Publish shared space <app> to managed space app (use after updating master items)")
     print("")
-    print("🟢 qlik flag_items           <app_name>     [<app_id>]   Highlight charts using non-master measures or dimensions in red.")
-    print("🟢 qlik unflag_items         <app_name>     [<app_id>]   Restore original color of charts using non-master measures or dimensions.")
-    print("")
-    print("🟢 qlik set_tenant           <tenant_url>                Set Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
-    print("🟢 qlik set_tenant_api_key   <api_key>                   Set Qlik API key")
-    print("🟢 qlik get_tenant                                       Check the current tenant URL and API key in use")
-
+    print("🟢 qlik flag_items           <app_name>     [<app_id>]   Highlight all charts using non-master measures or dimensions in red.")
+    print("🟢 qlik unflag_items         <app_name>     [<app_id>]   Restore background colors of all charts.")
 
 commands = {
     "get_app": get_app,
     "get_space": get_space,
-    "set": set,
-    "rem": rem,
-    "load": load,
-    "pub": pub,
+    "set_script": set_script,
+    "load_script": load_script,
+    "pub_script": pub_script,
     "set_items": set_items,
     "pub_items": pub_items,
     "flag_items": flag_items,
