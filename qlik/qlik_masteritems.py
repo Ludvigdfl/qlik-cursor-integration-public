@@ -509,6 +509,7 @@ class Qlik_Masteritems:
                 results.append({
                     "id":          obj_id,
                     "type":        obj_type,
+                    "sheet_id":    sheet_id,
                     "sheet":       sheet_title,
                     "dimensions":  dimensions,
                     "measures":    measures,
@@ -535,6 +536,17 @@ class Qlik_Masteritems:
 
         inline_items = [item for item in items if has_inline(item)]
 
+        # Identify published sheets among those containing inline objects (cache objects to avoid redundant calls)
+        published_sheet_objs = []
+        published_sheet_ids  = []
+        for sheet_id in {item["sheet_id"] for item in inline_items}:
+            sheet_obj = self.app.get_object(sheet_id)
+            if getattr(getattr(sheet_obj.get_layout(), "qMeta", None), "published", False):
+                published_sheet_objs.append(sheet_obj)
+                published_sheet_ids.append(sheet_id)
+
+        self._unpublish_sheets(published_sheet_objs)
+
         # Save originals so revert_inline_object_background can restore them
         originals = {
             item["id"]: {
@@ -551,7 +563,7 @@ class Qlik_Masteritems:
             print("chart_diff/diff.json already exists — skipping save to preserve originals. Run revert_chart_diffs first.")
         else:
             with open(diff_path, "w", encoding="utf-8") as f:
-                json.dump(originals, f, indent=4)
+                json.dump({"originals": originals, "published_sheet_ids": published_sheet_ids}, f, indent=4)
 
         updated = []
         for item in inline_items:
@@ -576,6 +588,7 @@ class Qlik_Masteritems:
             updated.append(item)
 
         self.app.do_save()
+        self._publish_sheets(published_sheet_objs)
 
         current_sheet = None
         for item in updated:
@@ -584,7 +597,7 @@ class Qlik_Masteritems:
                     print()
                 print(item["sheet"])
                 current_sheet = item["sheet"]
-            print(f"  [{item['type']}] {item['id']}")
+            print(f" Highlighting: [{item['type']}] {item['id']}")
 
         print(f"\nHighlighted {len(updated)} object(s)")
         return updated
@@ -602,7 +615,18 @@ class Qlik_Masteritems:
             return []
 
         with open(diffs_path, "r", encoding="utf-8") as f:
-            originals = json.load(f)
+            saved = json.load(f)
+
+        # Support both old format (flat dict of originals) and new format (with published_sheet_ids)
+        if "originals" in saved and "published_sheet_ids" in saved:
+            originals = saved["originals"]
+            published_sheet_ids = saved["published_sheet_ids"]
+        else:
+            originals = saved
+            published_sheet_ids = []
+
+        published_sheet_objs = [self.app.get_object(sid) for sid in published_sheet_ids]
+        self._unpublish_sheets(published_sheet_objs)
 
         reverted = []
         for obj_id, meta in originals.items():
@@ -620,6 +644,7 @@ class Qlik_Masteritems:
         self.app.do_save()
         diffs_path.unlink()
         print(f"\nReverted {len(reverted)} object(s)")
+        self._publish_sheets(published_sheet_objs)
         return reverted
 
     def _check_duplicate_ids(self, items: list[dict], file_name: str) -> None:
@@ -647,6 +672,22 @@ Correct and run set_items again."""
             }
         })
         return sheet_list.get_layout().qAppObjectList.qItems
+
+    def _unpublish_sheets(self, sheet_objs: list) -> None:
+        """Temporarily unpublish a list of sheet objects to allow editing."""
+        if not sheet_objs:
+            return
+        print(f"Temporarily unpublishing {len(sheet_objs)} published sheet(s) to allow editing...")
+        for obj in sheet_objs:
+            obj.un_publish()
+
+    def _publish_sheets(self, sheet_objs: list) -> None:
+        """Re-publish a list of sheet objects."""
+        if not sheet_objs:
+            return
+        print(f"Re-publishing {len(sheet_objs)} sheet(s)...")
+        for obj in sheet_objs:
+            obj.publish()
 
     @staticmethod
     def _sdk_to_dict(obj):
