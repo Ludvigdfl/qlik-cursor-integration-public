@@ -152,6 +152,16 @@ def revert_chart_diffs(App_Name: str, App_Id: str = None):
     Qlik.close()
 
 
+def get_objects(App_Name: str, App_Id: str = None):
+    """Fetch all sheet objects for an app and save each as a JSON file under Layout/Sheets/<sheet>/<obj_id>.json."""
+    app_id, save_dir = _masteritems_dir(App_Name, App_Id)
+    objects_root = save_dir.parent / "Layout" / "Sheets"
+    Qlik = Qlik_Masteritems(app_id=app_id, save_dir=save_dir)
+    total = Qlik.get_objects(objects_root)
+    Qlik.close()
+    print(f"\n✅ {App_Name} — {total} object(s) saved.")
+
+
 def load(App_Name:str, App_Id:str = None):
     """Reload app and stream reload logs."""
     Qlik = QlikScript()
@@ -231,8 +241,9 @@ def help():
     print("🟢 qlik set_items            <app_name>     [<app_id>]   Set all master measures and dimensions in shared space <app> from measures.json and dimensions.json")
     print("🟢 qlik pub_items            <app_name>     [<app_id>]   Publish shared space <app> to managed space app (use after updating master items)")
     print("")
-    print("🟢 qlik create_chart_diffs   <app_name>     [<app_id>]   Highlight chart objects with inline (non-master) expressions in pink.")
-    print("🟢 qlik revert_chart_diffs   <app_name>     [<app_id>]   Restore original backgrounds")
+    print("🟢 qlik create_chart_diffs   <app_name>     [<app_id>]   Highlight charts using non-master measures or dimensions in pink.")
+    print("🟢 qlik revert_chart_diffs   <app_name>     [<app_id>]   Restore original color of charts using non-master measures or dimensions")
+    print("🟢 qlik get_objects          <app_name>     [<app_id>]   Save full JSON layout for every sheet object to Layout/Sheets/<sheet>/<obj_id>.json")
     print("")
     print("🟢 qlik set_tenant           <tenant_url>                Set Qlik tenant URL. e.g. https://{tenant}.{region}.qlikcloud.com")
     print("🟢 qlik set_tenant_api_key   <api_key>                   Set Qlik API key")
@@ -251,6 +262,7 @@ commands = {
     "pub_items": pub_items,
     "create_chart_diffs": create_chart_diffs,
     "revert_chart_diffs": revert_chart_diffs,
+    "get_objects": get_objects,
     "set_tenant": set_tenant,
     "set_tenant_api_key": set_tenant_api_key,
     "get_tenant": get_tenant,

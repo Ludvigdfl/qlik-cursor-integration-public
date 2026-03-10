@@ -442,18 +442,9 @@ class Qlik_Masteritems:
         Each dimension/measure indicates whether it's a master item: qLibraryId (master) or inline (inline).
         """
 
-        sheet_list = self.app.create_session_object({
-            "qInfo": {"qType": "SheetList"},
-            "qAppObjectListDef": {
-                "qType": "sheet",
-                "qData": {"title": "/qMetaDef/title"}
-            }
-        })
-
-        sheets = sheet_list.get_layout().qAppObjectList.qItems
         results = []
 
-        for sheet_info in sheets:
+        for sheet_info in self._get_sheets():
             sheet_id    = sheet_info.qInfo.qId
             sheet_title = getattr(sheet_info.qData, "title", sheet_id)
 
@@ -645,6 +636,69 @@ class Qlik_Masteritems:
 Each item must have a unique ID when publishing to qlik.
 Correct and run set_items again."""
             )
+
+    def _get_sheets(self):
+        """Returns all sheet items from the app's SheetList."""
+        sheet_list = self.app.create_session_object({
+            "qInfo": {"qType": "SheetList"},
+            "qAppObjectListDef": {
+                "qType": "sheet",
+                "qData": {"title": "/qMetaDef/title"}
+            }
+        })
+        return sheet_list.get_layout().qAppObjectList.qItems
+
+    @staticmethod
+    def _sdk_to_dict(obj):
+        """Recursively convert an SDK model object to a plain dict/list."""
+        if isinstance(obj, dict):
+            return {k: Qlik_Masteritems._sdk_to_dict(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [Qlik_Masteritems._sdk_to_dict(i) for i in obj]
+        if hasattr(obj, "__dict__"):
+            return {k: Qlik_Masteritems._sdk_to_dict(v) for k, v in vars(obj).items() if not k.startswith("_")}
+        return obj
+
+    def get_objects(self, objects_root: Path) -> int:
+        """Fetch all sheet objects and save each as a JSON file.
+
+        Files are written to:
+            objects_root / <sanitized_sheet_title> / <obj_id>.json
+
+        The caller (CLI) is responsible for constructing objects_root as
+            {project_root}/{space}/{app}/{appId}/Layout/Sheets
+
+        Returns the total number of objects written.
+        """
+
+        total = 0
+
+        for sheet_info in self._get_sheets():
+            sheet_id    = sheet_info.qInfo.qId
+            sheet_title = getattr(sheet_info.qData, "title", None) or sheet_id
+            safe_title  = "".join(c if c.isalnum() or c in " _-" else "_" for c in sheet_title).strip()
+
+            sheet_dir = objects_root / safe_title
+            sheet_dir.mkdir(parents=True, exist_ok=True)
+
+            sheet_obj    = self.app.get_object(sheet_id)
+            sheet_layout = sheet_obj.get_layout()
+            children     = sheet_layout.qChildList.qItems if sheet_layout.qChildList else []
+
+            for child in children:
+                obj_id = child.qInfo.qId
+                obj    = self.app.get_object(obj_id)
+                layout = obj.get_layout()
+                data   = self._sdk_to_dict(layout)
+
+                out_path = sheet_dir / f"{obj_id}.json"
+                with open(out_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+                total += 1
+
+            print(f"  {sheet_title}: {len(children)} object(s)")
+
+        return total
 
     def get_items_changed(self) -> tuple[list[dict], list[dict]]:
         """Returns only the measures and dimensions that differ between local JSON files and the current Qlik app state."""
