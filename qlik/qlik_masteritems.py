@@ -628,8 +628,17 @@ class Qlik_Masteritems:
         published_sheet_objs = [self.app.get_object(sid) for sid in published_sheet_ids]
         self._unpublish_sheets(published_sheet_objs)
 
+        existing_ids = {
+            child.qInfo.qId
+            for sheet_info in self._get_sheets()
+            for child in (self.app.get_object(sheet_info.qInfo.qId).get_layout().qChildList.qItems or [])
+        }
+
         reverted = []
         for obj_id, meta in originals.items():
+            if obj_id not in existing_ids:
+                print(f"  Skipped (deleted): {obj_id} on '{meta['sheet']}'")
+                continue
             obj   = self.app.get_object(obj_id)
             props = obj.get_properties()
             props.components = meta["components"]
