@@ -617,22 +617,24 @@ class Qlik_Masteritems:
         with open(diffs_path, "r", encoding="utf-8") as f:
             saved = json.load(f)
 
-        # Support both old format (flat dict of originals) and new format (with published_sheet_ids)
-        if "originals" in saved and "published_sheet_ids" in saved:
-            originals = saved["originals"]
-            published_sheet_ids = saved["published_sheet_ids"]
-        else:
-            originals = saved
-            published_sheet_ids = []
+        originals = saved["originals"] if "originals" in saved else saved
+        original_obj_ids = set(originals.keys())
 
-        published_sheet_objs = [self.app.get_object(sid) for sid in published_sheet_ids]
-        self._unpublish_sheets(published_sheet_objs)
+        # Check current sheet state at unflag-time (not what was saved at flag-time).
+        # The user may have toggled sheets public/private between the two operations.
+        sheets_to_unpublish = []
+        existing_ids = set()
+        for sheet_info in self._get_sheets():
+            sheet_id  = sheet_info.qInfo.qId
+            sheet_obj = self.app.get_object(sheet_id)
+            layout    = sheet_obj.get_layout()
+            child_ids = {child.qInfo.qId for child in (layout.qChildList.qItems or [])}
+            existing_ids |= child_ids
+            is_published = getattr(getattr(layout, "qMeta", None), "published", False)
+            if is_published and (child_ids & original_obj_ids):
+                sheets_to_unpublish.append(sheet_obj)
 
-        existing_ids = {
-            child.qInfo.qId
-            for sheet_info in self._get_sheets()
-            for child in (self.app.get_object(sheet_info.qInfo.qId).get_layout().qChildList.qItems or [])
-        }
+        self._unpublish_sheets(sheets_to_unpublish)
 
         reverted = []
         for obj_id, meta in originals.items():
@@ -654,7 +656,7 @@ class Qlik_Masteritems:
         diffs_path.unlink()
         diffs_path.parent.rmdir()
         print(f"\nReverted {len(reverted)} object(s)")
-        self._publish_sheets(published_sheet_objs)
+        self._publish_sheets(sheets_to_unpublish)
         return reverted
 
     def _check_duplicate_ids(self, items: list[dict], file_name: str) -> None:
