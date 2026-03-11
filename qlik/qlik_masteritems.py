@@ -575,9 +575,9 @@ class Qlik_Masteritems:
                     print()
                 print(item["sheet"])
                 current_sheet = item["sheet"]
-            print(f" Highlighting: [{item['type']}] {item['id']}")
+            print(f" Flag object: [{item['type']}] {item['id']}")
 
-        print(f"\nHighlighted {len(updated)} object(s)")
+        print(f"\nFlagged {len(updated)} object(s)")
         return updated
 
     def revert_object_background(self) -> list[str]:
@@ -613,7 +613,7 @@ class Qlik_Masteritems:
 
         self._unpublish_sheets(sheets_to_unpublish)
 
-        reverted = []
+        reverted_items = []
         for obj_id, meta in originals.items():
             if obj_id not in existing_ids:
                 print(f"  Skipped (deleted): {obj_id} on '{meta['sheet']}'")
@@ -626,15 +626,25 @@ class Qlik_Masteritems:
                 if isinstance(ext_props, dict) and "tableBackgroundColor" in ext_props:
                     ext_props["tableBackgroundColor"] = meta["table_bg"]
             obj.set_properties(props)
-            reverted.append(obj_id)
-            print(f"  Reverted: [{meta['type']}] {obj_id} on '{meta['sheet']}'")
+            reverted_items.append((obj_id, meta))
 
         self.app.do_save()
         diffs_path.unlink()
         diffs_path.parent.rmdir()
-        print(f"\nReverted {len(reverted)} object(s)")
+
+        reverted_items.sort(key=lambda x: x[1]["sheet"])
+        current_sheet = None
+        for obj_id, meta in reverted_items:
+            if meta["sheet"] != current_sheet:
+                if current_sheet is not None:
+                    print()
+                print(meta["sheet"])
+                current_sheet = meta["sheet"]
+            print(f" Unflag object: [{meta['type']}] {obj_id}")
+
+        print(f"\nUnflagged {len(reverted_items)} object(s)")
         self._publish_sheets(sheets_to_unpublish)
-        return reverted
+        return [obj_id for obj_id, _ in reverted_items]
 
     def _check_duplicate_ids(self, items: list[dict], file_name: str) -> None:
         """Raises ValueError if any items share the same non-null ID."""
