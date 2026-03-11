@@ -577,7 +577,7 @@ class Qlik_Masteritems:
                 current_sheet = item["sheet"]
             print(f" Flag object: [{item['type']}] {item['id']}")
 
-        print(f"\nFlagged {len(updated)} object(s)")
+        print(f"\nFound and flagged {len(updated)} object(s) using hard coded measures or dimensions")
         return updated
 
     def revert_object_background(self) -> list[str]:
@@ -642,7 +642,7 @@ class Qlik_Masteritems:
                 current_sheet = meta["sheet"]
             print(f" Unflag object: [{meta['type']}] {obj_id}")
 
-        print(f"\nUnflagged {len(reverted_items)} object(s)")
+        print(f"\nUnflagged {len(reverted_items)} object(s) using hard coded measures or dimensions")
         self._publish_sheets(sheets_to_unpublish)
         return [obj_id for obj_id, _ in reverted_items]
 
